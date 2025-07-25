@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block title %}Reported Questions - Admin Panel{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Reported Questions</h1>
+
+{% if reports %}
+<div class="space-y-6">
+    {% for report in reports %}
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+        <div class="flex justify-between items-start mb-4 flex-wrap gap-4">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-200">Question ID: {{ report.question.id }}</h2>
+                <p class="text-gray-400 text-sm">Reported by: {{ report.reporter.username }} (ID: {{ report.reporter.id }})</p>
+                <p class="text-gray-400 text-sm">Reported on: {{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="{{ url_for('admin.edit_question', question_id=report.question.id) }}" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors duration-200">
+                    Edit Question
+                </a>
+                <form action="{{ url_for('admin.resolve_report', report_id=report.id) }}" method="POST">
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200">
+                        Mark as Resolved
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="mb-4">
+            <h3 class="text-lg font-semibold text-gray-200">Question Details:</h3>
+            <p class="text-gray-300">{{ report.question.question_text | safe }}</p>
+            {% if report.question.question_image_url %}
+                <img src="{{ report.question.question_image_url }}" alt="Question Image" class="max-w-xs h-auto mt-2 rounded-lg">
+            {% endif %}
+            <p class="text-gray-400 text-sm mt-2">Type: {{ report.question.question_type }} | Level: {{ report.question.level }} | Board: {{ report.question.board.name }} | Subject: {{ report.question.subject.name }}</p>
+            {% if report.question.chapter %}
+            <p class="text-gray-400 text-sm">Chapter: {{ report.question.chapter.name }}</p>
+            {% endif %}
+            {% if report.question.topic %}
+            <p class="text-gray-400 text-sm">Topic: {{ report.question.topic.name }}</p>
+            {% endif %}
+            {% if report.question.complexity %}
+            <p class="text-gray-400 text-sm">Complexity: {{ report.question.complexity.level }}</p>
+            {% endif %}
+
+            {% if report.question.question_type == 'MCQ' %}
+            <h4 class="text-md font-semibold text-gray-200 mt-4">Options:</h4>
+            <ul class="list-disc list-inside text-gray-300">
+                <li>A: {{ report.question.option_a | safe }} {% if report.question.option_a_image_url %}<img src="{{ report.question.option_a_image_url }}" class="inline-block max-h-16 ml-2 rounded">{% endif %}</li>
+                <li>B: {{ report.question.option_b | safe }} {% if report.question.option_b_image_url %}<img src="{{ report.question.option_b_image_url }}" class="inline-block max-h-16 ml-2 rounded">{% endif %}</li>
+                <li>C: {{ report.question.option_c | safe }} {% if report.question.option_c_image_url %}<img src="{{ report.question.option_c_image_url }}" class="inline-block max-h-16 ml-2 rounded">{% endif %}</li>
+                <li>D: {{ report.question.option_d | safe }} {% if report.question.option_d_image_url %}<img src="{{ report.question.option_d_image_url }}" class="inline-block max-h-16 ml-2 rounded">{% endif %}</li>
+            </ul>
+            <p class="text-gray-300 mt-2">Correct Answer: <span class="font-bold">{{ report.question.correct_answer }}</span></p>
+            {% endif %}
+
+            <h4 class="text-md font-semibold text-gray-200 mt-4">Solution:</h4>
+            <p class="text-gray-300">{{ report.question.solution | safe }}</p>
+            {% if report.question.solution_image_url %}
+                <img src="{{ report.question.solution_image_url }}" alt="Solution Image" class="max-w-xs h-auto mt-2 rounded-lg">
+            {% endif %}
+        </div>
+        <div>
+            <h3 class="text-lg font-semibold text-gray-200">Report Reason:</h3>
+            <p class="text-red-300 italic">{{ report.report_reason if report.report_reason else 'No reason provided.' }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 text-center">
+    <p class="text-xl font-semibold text-gray-200">No unresolved reported questions.</p>
+    <p class="text-gray-400 mt-2">All clear!</p>
+</div>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Render MathJax after content is loaded
+        if (window.MathJax) {
+            window.MathJax.typesetPromise();
+        }
+    });
+</script>
+{% endblock %}

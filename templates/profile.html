@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block title %}Profile - Question Bank{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Your Profile</h1>
+
+<div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700
+            dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300 max-w-md mx-auto">
+
+    <div class="flex flex-col items-center mb-6">
+        <div class="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden border-4 border-blue-500 mb-4">
+            <img src="{{ current_user.profile_pic_url }}?t={{ now().timestamp() | int }}" alt="Profile Picture" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/100x100/A0AEC0/FFFFFF?text=User';">
+        </div>
+        <h2 class="text-2xl font-semibold text-gray-100">{{ current_user.username }}</h2>
+        <p class="text-gray-400">{{ current_user.email }}</p>
+        <p class="text-gray-400">Levels: 
+            {% set level_names = current_user.levels|map(attribute='name')|list %}
+            {% if level_names %}
+                {{ level_names|join(', ') }}
+            {% else %}
+                Not selected
+            {% endif %}
+        </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('profile.profile') }}" enctype="multipart/form-data">
+        <div class="mb-6">
+            <label for="profile_pic" class="block text-gray-300 text-sm font-bold mb-2">Upload New Profile Picture</label>
+            <input type="file" id="profile_pic" name="profile_pic" accept="image/*"
+                   class="block w-full text-sm text-gray-300
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100
+                          dark:file:bg-gray-700 dark:file:text-gray-200 dark:hover:file:bg-gray-600">
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">PNG, JPG, JPEG, GIF (Max 16MB)</p>
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-gray-300 text-sm font-bold mb-2">Update Study Level(s):</label>
+            <div class="grid grid-cols-2 gap-4">
+                {% for level in all_levels %}
+                <div class="flex items-center">
+                    <input type="checkbox" id="level_{{ level.id }}" name="levels" value="{{ level.id }}" 
+                           class="form-checkbox h-5 w-5 text-blue-600 rounded" 
+                           {% if level.id in user_level_ids %}checked{% endif %}>
+                    <label for="level_{{ level.id }}" class="ml-2 text-gray-300">{{ level.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            <p id="level-update-error" class="text-red-500 text-xs italic mt-2 hidden">Please select at least one level.</p>
+        </div>
+
+        <button type="submit"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200 w-full">
+            Update Profile
+        </button>
+    </form>
+
+    <div class="mt-8 text-center">
+        <button id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-colors duration-200 w-full">
+            Delete Account
+        </button>
+    </div>
+
+    <div class="mt-8 text-center">
+        <a href="{{ url_for('routes.dashboard') }}" class="text-blue-400 hover:underline">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Delete Account Confirmation Modal -->
+<div id="deleteAccountModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-sm">
+        <h2 class="text-2xl font-bold text-gray-100 mb-4">Confirm Account Deletion</h2>
+        <p class="text-gray-300 mb-6">Are you sure you want to delete your account? This action cannot be undone. Please enter your password to confirm.</p>
+        <form id="deleteAccountForm" method="POST" action="{{ url_for('profile.delete_account') }}">
+            <div class="mb-4">
+                <label for="delete_password" class="block text-gray-300 text-sm font-bold mb-2">Password</label>
+                <input type="password" id="delete_password" name="password" required
+                       class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700">
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button type="button" id="cancelDeleteBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Confirm Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+        const deleteAccountModal = document.getElementById('deleteAccountModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const profileUpdateForm = document.querySelector('form[action="{{ url_for('profile.profile') }}"]');
+        const levelCheckboxes = document.querySelectorAll('input[name="levels"]');
+        const levelUpdateError = document.getElementById('level-update-error');
+
+        // Show delete account modal
+        if (deleteAccountBtn) {
+            deleteAccountBtn.addEventListener('click', () => {
+                deleteAccountModal.classList.remove('hidden');
+            });
+        }
+
+        // Hide delete account modal
+        if (cancelDeleteBtn) {
+            cancelDeleteBtn.addEventListener('click', () => {
+                deleteAccountModal.classList.add('hidden');
+                document.getElementById('delete_password').value = ''; // Clear password field
+            });
+        }
+
+        // Client-side validation for level selection on profile update
+        if (profileUpdateForm) {
+            profileUpdateForm.addEventListener('submit', function(event) {
+                const isAnyLevelChecked = Array.from(levelCheckboxes).some(checkbox => checkbox.checked);
+                if (!isAnyLevelChecked && levelCheckboxes.length > 0) {
+                    levelUpdateError.classList.remove('hidden');
+                    event.preventDefault(); // Prevent form submission
+                } else {
+                    levelUpdateError.classList.add('hidden');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

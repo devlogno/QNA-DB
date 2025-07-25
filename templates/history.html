@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% from 'partials/_macros.html' import render_question_card %}
+
+{% block title %}Saved Questions History - Question Bank{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Your Saved Questions</h1>
+
+<div class="space-y-8">
+    {% if questions %}
+        {% for question in questions %}
+            {# CORRECTED: Calling the macro #}
+            {{ render_question_card(question, loop) }}
+        {% endfor %}
+    {% else %}
+        <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 text-center">
+            <p class="text-xl font-semibold text-gray-200">No Saved Questions Yet</p>
+            <p class="text-gray-400 mt-2">You can save questions while browsing to review them here later.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

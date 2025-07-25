@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}Send Notification - Admin Panel{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Send Notification</h1>
+
+<div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 max-w-lg mx-auto">
+    <form method="POST" action="{{ url_for('admin.send_notification') }}">
+        <div class="mb-4">
+            <label for="message" class="block text-gray-300 text-sm font-bold mb-2">Message</label>
+            <textarea id="message" name="message" rows="5" required
+                      class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700"></textarea>
+        </div>
+        <div class="mb-6">
+            <label for="username" class="block text-gray-300 text-sm font-bold mb-2">Recipient Username (Optional)</label>
+            <input type="text" id="username" name="username"
+                   class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700">
+            <p class="text-xs text-gray-500 mt-1">Leave blank to broadcast to all users.</p>
+        </div>
+        <button type="submit"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200">
+            Send Notification
+        </button>
+    </form>
+</div>
+{% endblock %}
