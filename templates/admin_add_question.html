@@ -1,0 +1,223 @@
+{% extends "layout.html" %}
+
+{% block title %}Add New Question - Admin Panel{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Add New Question</h1>
+
+<form method="POST" action="{{ url_for('admin.add_question') }}" enctype="multipart/form-data" class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+    
+    <!-- Section 1: Categories and Metadata (unchanged) -->
+    <div class="border-b border-gray-700 pb-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-200 mb-4">1. Categorization</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="space-y-4">
+                <div>
+                    <label for="level_id" class="block text-gray-300 text-sm font-bold mb-2">Level</label>
+                    <select id="level_id" name="level_id" required class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="streams"></select>
+                </div>
+                <div>
+                    <label for="stream_id" class="block text-gray-300 text-sm font-bold mb-2">Stream / Group</label>
+                    <select id="stream_id" name="stream_id" class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="boards"></select>
+                </div>
+                <div>
+                    <label for="board_id" class="block text-gray-300 text-sm font-bold mb-2">Institution / Board</label>
+                    <select id="board_id" name="board_id" class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="subjects"></select>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="subject_id" class="block text-gray-300 text-sm font-bold mb-2">Subject</label>
+                    <select id="subject_id" name="subject_id" class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="chapters"></select>
+                </div>
+                <div>
+                    <label for="chapter_id" class="block text-gray-300 text-sm font-bold mb-2">Chapter</label>
+                    <select id="chapter_id" name="chapter_id" class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="topics"></select>
+                </div>
+                <div>
+                    <label for="topic_id" class="block text-gray-300 text-sm font-bold mb-2">Topic</label>
+                    <select id="topic_id" name="topic_id" class="shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700"></select>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="year" class="block text-gray-300 text-sm font-bold mb-2">Year</label>
+                    <input type="number" id="year" name="year" required min="1900" max="2100" value="{{ now().year }}" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+                </div>
+                <div>
+                    <label for="complexity" class="block text-gray-300 text-sm font-bold mb-2">Complexity: <span id="complexity_value">5</span></label>
+                    <input type="range" id="complexity" name="complexity" min="1" max="10" value="5" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Question Details (unchanged) -->
+    <div class="border-b border-gray-700 pb-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-200 mb-4">2. Question Content</h2>
+        <div>
+            <label for="question_type" class="block text-gray-300 text-sm font-bold mb-2">Question Type</label>
+            <select id="question_type" name="question_type" required class="shadow border border-gray-600 rounded-lg w-full md:w-1/3 py-2 px-3 text-gray-100 bg-gray-700">
+                <option value="MCQ" selected>MCQ</option>
+                <option value="CQ">CQ (Creative Question)</option>
+            </select>
+        </div>
+        <div class="mt-4">
+            <label for="question_text" class="block text-gray-300 text-sm font-bold mb-2">Question Text / Stimulus (উদ্দীপক)</label>
+            <textarea id="question_text" name="question_text" rows="4" required class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700"></textarea>
+        </div>
+        <div class="mt-4">
+            <label for="question_image" class="block text-gray-300 text-sm font-bold mb-2">Question Image (Optional)</label>
+            <input type="file" id="question_image" name="question_image" accept="image/*" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-700 hover:file:bg-gray-600">
+        </div>
+    </div>
+
+    <!-- Section 3: MCQ/CQ Specific Fields -->
+    <div>
+        <h2 class="text-xl font-semibold text-gray-200 mb-4">3. Answers</h2>
+        
+        <!-- MCQ Options Section (unchanged) -->
+        <div id="mcq_section">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for opt in ['a', 'b', 'c', 'd'] %}
+                <div>
+                    <label for="option_{{ opt }}" class="block text-gray-300 text-sm font-bold mb-2">Option {{ opt.upper() }} Text</label>
+                    <textarea id="option_{{ opt }}" name="option_{{ opt }}" rows="2" class="mcq-field shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700"></textarea>
+                    <label for="option_{{ opt }}_image" class="block text-gray-300 text-sm font-bold mb-2 mt-2">Option {{ opt.upper() }} Image</label>
+                    <input type="file" id="option_{{ opt }}_image" name="option_{{ opt }}_image" accept="image/*" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-700 hover:file:bg-gray-600">
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-6">
+                <label for="correct_answer" class="block text-gray-300 text-sm font-bold mb-2">Correct Answer</label>
+                <select id="correct_answer" name="correct_answer" class="mcq-field shadow border border-gray-600 rounded-lg py-2 px-3 text-gray-100 bg-gray-700">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- CQ Sub-Questions Section (UPDATED) -->
+        <div id="cq_section" class="hidden space-y-6">
+            {% for q_char, q_name in [('a', 'ক'), ('b', 'খ'), ('c', 'গ'), ('d', 'ঘ')] %}
+            <div class="p-4 border border-gray-700 rounded-lg">
+                <h4 class="text-lg font-semibold text-gray-300 mb-2">Question {{ q_char.upper() }} (প্রশ্ন {{ q_name }})</h4>
+                <div class="mb-4">
+                    <label for="cq_question_{{ q_char }}" class="block text-gray-300 text-sm font-bold mb-2">Question Text</label>
+                    <textarea id="cq_question_{{ q_char }}" name="cq_question_{{ q_char }}" rows="2" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700"></textarea>
+                    <!-- NEW: Image upload for question text -->
+                    <label for="cq_question_{{ q_char }}_image" class="block text-gray-300 text-sm font-bold mb-2 mt-2">Question Image (Optional)</label>
+                    <input type="file" id="cq_question_{{ q_char }}_image" name="cq_question_{{ q_char }}_image" accept="image/*" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-700 hover:file:bg-gray-600">
+                </div>
+                <div>
+                    <label for="cq_answer_{{ q_char }}" class="block text-gray-300 text-sm font-bold mb-2">Answer Text</label>
+                    <textarea id="cq_answer_{{ q_char }}" name="cq_answer_{{ q_char }}" rows="3" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700"></textarea>
+                    <!-- NEW: Image upload for answer text -->
+                    <label for="cq_answer_{{ q_char }}_image" class="block text-gray-300 text-sm font-bold mb-2 mt-2">Answer Image (Optional)</label>
+                    <input type="file" id="cq_answer_{{ q_char }}_image" name="cq_answer_{{ q_char }}_image" accept="image/*" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-700 hover:file:bg-gray-600">
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- General Solution Field (unchanged) -->
+        <div class="mt-6">
+            <label for="solution" class="block text-gray-300 text-sm font-bold mb-2">Detailed Solution (For both MCQ & CQ)</label>
+            <textarea id="solution" name="solution" rows="6" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700"></textarea>
+        </div>
+        <div class="mt-4">
+            <label for="solution_image" class="block text-gray-300 text-sm font-bold mb-2">Solution Image (Optional)</label>
+            <input type="file" id="solution_image" name="solution_image" accept="image/*" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-700 hover:file:bg-gray-600">
+        </div>
+    </div>
+
+    <!-- Submit Button (unchanged) -->
+    <div class="mt-8 flex justify-end">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200">
+            Add Question
+        </button>
+    </div>
+</form>
+
+<script id="levels-data" type="application/json">
+    {{ levels_data|tojson|safe }}
+</script>
+
+<script>
+// JavaScript section is unchanged
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelects = document.querySelectorAll('.category-select');
+    async function fetchChildren(category, parentId) {
+        if (!parentId) return [];
+        const response = await fetch(`/admin/api/categories/${category}?parent_id=${parentId}`);
+        if (!response.ok) return [];
+        return response.json();
+    }
+    function populateSelect(selectElement, items, placeholder) {
+        selectElement.innerHTML = `<option value="">-- ${placeholder} --</option>`;
+        if (items) {
+            items.forEach(item => {
+                const option = new Option(item.name, item.id);
+                selectElement.add(option);
+            });
+        }
+        selectElement.disabled = !items || items.length === 0;
+    }
+    async function onCategoryChange(event) {
+        const parentSelect = event.target;
+        const parentId = parentSelect.value;
+        const childCategoryPlural = parentSelect.dataset.child;
+        let current = parentSelect;
+        while (current && current.dataset.child) {
+            const nextCategoryPlural = current.dataset.child;
+            const nextCategorySingular = nextCategoryPlural.slice(0, -1);
+            const nextSelect = document.getElementById(`${nextCategorySingular}_id`);
+            if (nextSelect) {
+                populateSelect(nextSelect, [], `Select ${nextCategorySingular}`);
+                current = nextSelect;
+            } else {
+                break;
+            }
+        }
+        if (parentId && childCategoryPlural) {
+            const children = await fetchChildren(childCategoryPlural, parentId);
+            const childCategorySingular = childCategoryPlural.slice(0, -1);
+            const childSelect = document.getElementById(`${childCategorySingular}_id`);
+            if (childSelect) {
+                populateSelect(childSelect, children, `Select ${childCategorySingular}`);
+            }
+        }
+    }
+    function toggleQuestionTypeFields() {
+        const type = document.getElementById('question_type').value;
+        const mcqSection = document.getElementById('mcq_section');
+        const cqSection = document.getElementById('cq_section');
+        const mcqFields = document.querySelectorAll('.mcq-field');
+
+        if (type === 'MCQ') {
+            mcqSection.classList.remove('hidden');
+            cqSection.classList.add('hidden');
+            mcqFields.forEach(f => f.required = true);
+        } else { // CQ
+            mcqSection.classList.add('hidden');
+            cqSection.classList.remove('hidden');
+            mcqFields.forEach(f => f.required = false);
+        }
+    }
+    const levelSelect = document.getElementById('level_id');
+    const levelsDataElement = document.getElementById('levels-data');
+    const levelsData = JSON.parse(levelsDataElement.textContent.trim());
+    populateSelect(levelSelect, levelsData, 'Select Level');
+    categorySelects.forEach(select => select.addEventListener('change', onCategoryChange));
+    document.getElementById('question_type').addEventListener('change', toggleQuestionTypeFields);
+    const complexitySlider = document.getElementById('complexity');
+    const complexityValueSpan = document.getElementById('complexity_value');
+    complexitySlider.addEventListener('input', () => {
+        complexityValueSpan.textContent = complexitySlider.value;
+    });
+    toggleQuestionTypeFields();
+});
+</script>
+{% endblock %}

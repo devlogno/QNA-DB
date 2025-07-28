@@ -1,0 +1,189 @@
+{% extends "layout.html" %}
+
+{% block title %}Your Profile - Question Bank{% endblock %}
+
+{% block content %}
+<style>
+    .profile-section {
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
+    .profile-section.hidden {
+        opacity: 0;
+        transform: translateY(10px);
+        pointer-events: none;
+        position: absolute;
+    }
+</style>
+
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Account Settings</h1>
+
+<div class="bg-gray-800 rounded-lg shadow-md border border-gray-700">
+    <div class="grid grid-cols-1 md:grid-cols-3">
+        <!-- Left Side: Profile Card -->
+        <div class="md:col-span-1 md:border-r border-gray-700 p-8 flex flex-col items-center text-center">
+            <div class="w-32 h-32 rounded-full bg-gray-700 overflow-hidden border-4 border-blue-500 mb-4">
+                <img src="{{ current_user.profile_pic_url }}?t={{ now().timestamp() | int }}" alt="Profile Picture" class="w-full h-full object-cover">
+            </div>
+            <h2 class="text-2xl font-semibold text-white">{{ current_user.name }}</h2>
+            <p class="text-gray-400">{{ current_user.email }}</p>
+            <!-- NEW: Display school name -->
+            <p class="text-gray-400 mt-1">
+                {{ current_user.school or 'School not set' }}
+            </p>
+        </div>
+
+        <!-- Right Side: View/Edit Content -->
+        <div class="md:col-span-2 p-8 relative">
+            
+            <!-- View Mode -->
+            <div id="view-mode" class="profile-section">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-white">Your Selections</h3>
+                    <button id="edit-profile-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">
+                        Edit Profile
+                    </button>
+                </div>
+                <div class="space-y-4">
+                    {% if current_user.streams %}
+                        {% for level, streams_in_level in current_user.streams|groupby('level.name') %}
+                            <div>
+                                <p class="font-bold text-gray-400">{{ level }}:</p>
+                                <p class="pl-4 text-gray-300">{{ streams_in_level|map(attribute='name')|join(', ') }}</p>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-gray-500">You haven't selected any study streams yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="edit-mode" class="profile-section hidden">
+                <h3 class="text-xl font-bold text-white mb-6">Edit Your Profile</h3>
+                <form method="POST" action="{{ url_for('profile.profile') }}" enctype="multipart/form-data">
+                    
+                    <!-- NEW: Fields for name and school -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label for="name" class="block text-gray-300 text-sm font-bold mb-2">Full Name</label>
+                            <input type="text" id="name" name="name" value="{{ current_user.name }}" required
+                                   class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+                        </div>
+                        <div>
+                            <label for="school" class="block text-gray-300 text-sm font-bold mb-2">School/Institution</label>
+                            <input type="text" id="school" name="school" value="{{ current_user.school or '' }}"
+                                   class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="profile_pic" class="block text-gray-300 text-sm font-bold mb-2">Update Profile Picture</label>
+                        <input type="file" id="profile_pic" name="profile_pic" accept="image/*"
+                               class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-700 hover:file:bg-gray-600">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-gray-300 text-sm font-bold mb-4">Update Study Stream(s):</label>
+                        <div class="space-y-4">
+                            {% for level in all_levels %}
+                            <div>
+                                <h4 class="font-semibold text-gray-400 mb-2">{{ level.name }}</h4>
+                                <div class="grid grid-cols-2 gap-4 pl-4">
+                                    {% for stream in level.streams %}
+                                    <div class="flex items-center">
+                                        <input type="checkbox" id="stream_{{ stream.id }}" name="streams" value="{{ stream.id }}" 
+                                               class="form-checkbox h-5 w-5 text-blue-600 rounded" 
+                                               {% if stream.id in user_stream_ids %}checked{% endif %}>
+                                        <label for="stream_{{ stream.id }}" class="ml-2 text-gray-300">{{ stream.name }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p id="stream-update-error" class="text-red-500 text-xs italic mt-2 hidden">Please select at least one stream.</p>
+                    </div>
+
+                    <div class="flex justify-end items-center space-x-4 mt-8">
+                        <button type="button" id="cancel-edit-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Save Changes</button>
+                    </div>
+                </form>
+
+                <div class="mt-8 border-t border-red-500/30 pt-6">
+                     <h4 class="font-semibold text-red-400 mb-2">Danger Zone</h4>
+                     <p class="text-sm text-gray-400 mb-4">Deleting your account is a permanent action and cannot be undone.</p>
+                     <button id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg w-full sm:w-auto">
+                        Delete Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal (unchanged) -->
+<div id="deleteAccountModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 p-8 rounded-lg shadow-xl w-full max-w-sm">
+        <h2 class="text-2xl font-bold text-gray-100 mb-4">Confirm Account Deletion</h2>
+        <p class="text-gray-300 mb-6">Are you sure? This action cannot be undone. Please enter your password to confirm.</p>
+        <form id="deleteAccountForm" method="POST" action="{{ url_for('profile.delete_account') }}">
+            <div class="mb-4">
+                <label for="delete_password" class="block text-gray-300 text-sm font-bold mb-2">Password</label>
+                <input type="password" id="delete_password" name="password" required
+                       class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+            </div>
+            <div class="flex justify-end space-x-4">
+                <button type="button" id="cancelDeleteBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Confirm Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const viewMode = document.getElementById('view-mode');
+    const editMode = document.getElementById('edit-mode');
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+    editProfileBtn.addEventListener('click', () => {
+        viewMode.classList.add('hidden');
+        editMode.classList.remove('hidden');
+    });
+
+    cancelEditBtn.addEventListener('click', () => {
+        editMode.classList.add('hidden');
+        viewMode.classList.remove('hidden');
+    });
+
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
+    const deleteAccountModal = document.getElementById('deleteAccountModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', () => deleteAccountModal.classList.remove('hidden'));
+    }
+    if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', () => deleteAccountModal.classList.add('hidden'));
+    }
+
+    const profileUpdateForm = document.querySelector('form[action="{{ url_for('profile.profile') }}"]');
+    const streamCheckboxes = document.querySelectorAll('input[name="streams"]');
+    const streamUpdateError = document.getElementById('stream-update-error');
+
+    if (profileUpdateForm) {
+        profileUpdateForm.addEventListener('submit', function(event) {
+            const isAnyStreamChecked = Array.from(streamCheckboxes).some(checkbox => checkbox.checked);
+            if (!isAnyStreamChecked && streamCheckboxes.length > 0) {
+                streamUpdateError.classList.remove('hidden');
+                event.preventDefault();
+            } else {
+                streamUpdateError.classList.add('hidden');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

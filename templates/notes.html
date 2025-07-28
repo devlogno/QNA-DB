@@ -1,0 +1,379 @@
+{% extends "layout.html" %}
+
+{% block title %}My Notes{% endblock %}
+
+{% block content %}
+<style>
+    /* Custom styles for the file input button */
+    .custom-file-button {
+        background-color: #4a5568; /* gray-600 */
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .custom-file-button:hover {
+        background-color: #2d3748; /* gray-800 */
+    }
+    /* Hide the default file input */
+    input[type="file"] {
+        display: none;
+    }
+    /* Styles for lightbox panning */
+    #lightbox-img.is-pannable {
+        cursor: grab;
+    }
+    #lightbox-img.is-panning {
+        cursor: grabbing;
+    }
+</style>
+
+<div class="flex flex-col lg:flex-row gap-8">
+    <!-- Add Note Form -->
+    <div class="lg:w-1/3 w-full">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+            <h2 class="text-2xl font-bold text-gray-100 mb-4">Add a New Note</h2>
+            <form method="POST" action="{{ url_for('notes.view_notes') }}" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label for="title" class="block text-gray-300 text-sm font-bold mb-2">Title</label>
+                    <input type="text" id="title" name="title" required
+                           class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700">
+                </div>
+                <div class="mb-4">
+                    <label for="content" class="block text-gray-300 text-sm font-bold mb-2">Content</label>
+                    <textarea id="content" name="content" rows="5" required
+                              class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-300 text-sm font-bold mb-2">Images (Optional, Multiple)</label>
+                    <label for="images" class="custom-file-button">Choose Files</label>
+                    <input type="file" id="images" name="images" accept="image/*" multiple>
+                    <span id="add-file-chosen" class="text-gray-400 text-sm ml-2">No files chosen</span>
+                </div>
+                <div id="add-note-previews" class="grid grid-cols-3 gap-2 mb-4"></div>
+                
+                <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200">
+                    Save Note
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notes Display -->
+    <div class="lg:w-2/3 w-full">
+        <h2 class="text-2xl font-bold text-gray-100 mb-4">Your Notes</h2>
+        <div class="space-y-6">
+            {% if notes %}
+                {% for note in notes %}
+                <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+                    <h3 class="text-xl font-semibold text-gray-200 mb-2">{{ note.title }}</h3>
+                    <p class="text-sm text-gray-500 mb-4">{{ note.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                    
+                    {% set images = note.images.all() %}
+                    {% if images %}
+                        {% if images|length == 1 %}
+                            <div class="my-4 flex justify-center">
+                                <img src="{{ images[0].image_url }}" alt="Note Image" 
+                                     class="max-w-full md:max-w-lg h-auto object-cover rounded-lg cursor-pointer note-image-clickable">
+                            </div>
+                        {% else %}
+                            <div class="flex overflow-x-auto space-x-4 py-2 mb-4 custom-scrollbar">
+                                {% for image in images %}
+                                <img src="{{ image.image_url }}" alt="Note Image" 
+                                     class="h-48 w-auto object-cover rounded-lg flex-shrink-0 cursor-pointer note-image-clickable">
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <p class="text-gray-300 whitespace-pre-wrap">{{ note.content }}</p>
+                    <div class="flex justify-end space-x-4 mt-4">
+                        <button 
+                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                            data-note-id="{{ note.id }}"
+                            data-note-title="{{ note.title }}"
+                            data-note-content="{{ note.content }}"
+                            data-note-images='{{ images|map(attribute="image_url")|list|tojson }}'
+                            data-note-image-ids='{{ images|map(attribute="id")|list|tojson }}'
+                            onclick="openEditModal(this)">
+                            Edit
+                        </button>
+                        <form method="POST" action="{{ url_for('notes.delete_note', note_id=note.id) }}" 
+                              onsubmit="event.preventDefault(); showConfirmation('Delete Note', 'Are you sure you want to delete this entire note?', () => this.submit());">
+                            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="bg-gray-800 p-6 rounded-lg text-center">
+                <p class="text-gray-300">You haven't created any notes yet. Use the form on the left to get started!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Note Modal -->
+<div id="editNoteModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <h2 class="text-2xl font-bold text-gray-100 mb-4">Edit Note</h2>
+        <form id="editNoteForm" method="POST" enctype="multipart/form-data" class="flex-grow overflow-y-auto pr-4">
+            <div class="mb-4">
+                <label for="edit_title" class="block text-gray-300 text-sm font-bold mb-2">Title</label>
+                <input type="text" id="edit_title" name="title" required class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+            </div>
+            <div class="mb-4">
+                <label for="edit_content" class="block text-gray-300 text-sm font-bold mb-2">Content</label>
+                <textarea id="edit_content" name="content" rows="6" required class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700"></textarea>
+            </div>
+            
+            <div class="mb-4">
+                <h3 class="block text-gray-300 text-sm font-bold mb-2">Existing Images</h3>
+                <div id="edit-existing-previews" class="grid grid-cols-3 md:grid-cols-4 gap-2"></div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-300 text-sm font-bold mb-2">Add More Images</label>
+                <label for="new_images" class="custom-file-button">Choose Files</label>
+                <input type="file" id="new_images" name="new_images" accept="image/*" multiple>
+                <span id="edit-file-chosen" class="text-gray-400 text-sm ml-2">No files chosen</span>
+                <div id="edit-new-previews" class="grid grid-cols-3 md:grid-cols-4 gap-2 mt-2"></div>
+            </div>
+            
+            <div class="flex justify-end space-x-4 mt-auto pt-4">
+                <button type="button" onclick="closeEditModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lightbox Modal -->
+<div id="lightbox" class="fixed inset-0 bg-black bg-opacity-90 z-[100] hidden items-center justify-center p-4 overflow-hidden">
+    <div id="lightbox-container" class="relative w-full h-full flex items-center justify-center">
+        <img id="lightbox-img" src="" class="max-w-full max-h-full object-contain transition-transform duration-300 ease-in-out" style="transform-origin: center center;">
+    </div>
+    <div class="absolute top-4 right-4 flex space-x-2">
+        <button id="zoom-in" class="bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg></button>
+        <button id="zoom-out" class="bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg></button>
+        <button id="close-lightbox" class="bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+    </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[110] hidden">
+    <div class="bg-gray-900 p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-sm">
+        <h2 id="confirm-title" class="text-2xl font-bold text-gray-100 mb-4">Confirm Action</h2>
+        <p id="confirm-message" class="text-gray-300 mb-6">Are you sure?</p>
+        <div class="flex justify-end space-x-4">
+            <button id="confirm-cancel-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+            <button id="confirm-ok-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- Custom Confirmation Modal Logic ---
+const confirmationModal = document.getElementById('confirmationModal');
+const confirmTitle = document.getElementById('confirm-title');
+const confirmMessage = document.getElementById('confirm-message');
+const confirmOkBtn = document.getElementById('confirm-ok-btn');
+const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+let confirmCallback = null;
+
+function showConfirmation(title, message, onConfirm) {
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
+    confirmCallback = onConfirm;
+    confirmationModal.classList.remove('hidden');
+}
+
+confirmCancelBtn.addEventListener('click', () => {
+    confirmationModal.classList.add('hidden');
+    confirmCallback = null;
+});
+
+confirmOkBtn.addEventListener('click', () => {
+    if (confirmCallback) {
+        confirmCallback();
+    }
+    confirmationModal.classList.add('hidden');
+    confirmCallback = null;
+});
+
+// --- File Input & Preview Logic ---
+function setupFileInput(inputId, previewContainerId, chosenTextId) {
+    const fileInput = document.getElementById(inputId);
+    const previewContainer = document.getElementById(previewContainerId);
+    const chosenTextElement = document.getElementById(chosenTextId);
+
+    fileInput.addEventListener('change', () => {
+        previewContainer.innerHTML = '';
+        const files = fileInput.files;
+        
+        if (files && files.length > 0) {
+            chosenTextElement.textContent = `${files.length} file(s) chosen`;
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'w-full h-24 object-cover rounded-lg';
+                    previewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        } else {
+            chosenTextElement.textContent = 'No files chosen';
+        }
+    });
+}
+
+setupFileInput('images', 'add-note-previews', 'add-file-chosen');
+setupFileInput('new_images', 'edit-new-previews', 'edit-file-chosen');
+
+// --- Edit Note Modal Logic ---
+const editModal = document.getElementById('editNoteModal');
+const editForm = document.getElementById('editNoteForm');
+const editTitleInput = document.getElementById('edit_title');
+const editContentInput = document.getElementById('edit_content');
+const editExistingPreviews = document.getElementById('edit-existing-previews');
+const editNewImageInput = document.getElementById('new_images');
+
+async function deleteImage(imageId, imageContainerElement) {
+    showConfirmation('Remove Image', 'Are you sure you want to permanently remove this image?', async () => {
+        try {
+            const response = await fetch(`/notes/image/delete/${imageId}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (data.success) {
+                imageContainerElement.style.transition = 'opacity 0.3s';
+                imageContainerElement.style.opacity = '0';
+                setTimeout(() => imageContainerElement.remove(), 300);
+            } else {
+                // Use custom modal for errors in the future, for now alert is a fallback
+                alert('Error: ' + data.message);
+            }
+        } catch (error) {
+            alert('An error occurred while deleting the image.');
+        }
+    });
+}
+
+function openEditModal(button) {
+    const noteId = button.dataset.noteId;
+    editForm.action = `/notes/edit/${noteId}`;
+    editTitleInput.value = button.dataset.noteTitle;
+    editContentInput.value = button.dataset.noteContent;
+    
+    const images = JSON.parse(button.dataset.noteImages);
+    const imageIds = JSON.parse(button.dataset.noteImageIds);
+
+    editExistingPreviews.innerHTML = '';
+    images.forEach((imageUrl, index) => {
+        const imageId = imageIds[index];
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'relative group';
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.className = 'w-full h-24 object-cover rounded-lg';
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.className = 'absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity';
+        removeBtn.onclick = () => deleteImage(imageId, imgContainer);
+        imgContainer.appendChild(img);
+        imgContainer.appendChild(removeBtn);
+        editExistingPreviews.appendChild(imgContainer);
+    });
+
+    editNewImageInput.value = ''; // Clear previous selection
+    document.getElementById('edit-new-previews').innerHTML = '';
+    document.getElementById('edit-file-chosen').textContent = 'No files chosen';
+
+    editModal.classList.remove('hidden');
+}
+
+function closeEditModal() {
+    editModal.classList.add('hidden');
+}
+
+// --- Lightbox & Panning Logic ---
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightbox-img');
+let currentZoom = 1, minZoom = 1, maxZoom = 4;
+let isPanning = false;
+let startX, startY, translateX = 0, translateY = 0;
+
+function resetLightbox() {
+    currentZoom = 1;
+    translateX = 0;
+    translateY = 0;
+    updateImageTransform();
+    lightboxImg.classList.remove('is-pannable');
+}
+
+function updateImageTransform() {
+    lightboxImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+    if (currentZoom > 1) {
+        lightboxImg.classList.add('is-pannable');
+    } else {
+        lightboxImg.classList.remove('is-pannable');
+    }
+}
+
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('note-image-clickable')) {
+        lightboxImg.src = e.target.src;
+        resetLightbox();
+        lightbox.classList.remove('hidden');
+        lightbox.classList.add('flex');
+    }
+});
+
+document.getElementById('close-lightbox').addEventListener('click', () => {
+    lightbox.classList.add('hidden');
+    lightbox.classList.remove('flex');
+});
+
+document.getElementById('zoom-in').addEventListener('click', () => {
+    currentZoom = Math.min(maxZoom, currentZoom + 0.2);
+    updateImageTransform();
+});
+
+document.getElementById('zoom-out').addEventListener('click', () => {
+    currentZoom = Math.max(minZoom, currentZoom - 0.2);
+    if (currentZoom === 1) { // Snap back to center when zooming out to 1x
+        translateX = 0;
+        translateY = 0;
+    }
+    updateImageTransform();
+});
+
+lightboxImg.addEventListener('mousedown', (e) => {
+    if (currentZoom > 1) {
+        e.preventDefault();
+        isPanning = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+        lightboxImg.classList.add('is-panning');
+    }
+});
+
+window.addEventListener('mouseup', () => {
+    isPanning = false;
+    lightboxImg.classList.remove('is-panning');
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (isPanning) {
+        e.preventDefault();
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        updateImageTransform();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Question Bank{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="text/javascript" id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #374151 #0f172a; }
+        .sidebar-scroll::-webkit-scrollbar { width: 8px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 10px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background-color: #374151; border-radius: 10px; border: 2px solid #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #64748b; }
+        .mcq-option-btn { border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
+        .mcq-option-btn:disabled { cursor: not-allowed; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden dark">
+
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-gray-950 text-gray-100 flex flex-col p-4 shadow-lg overflow-y-auto sidebar-scroll transform -translate-x-full transition-transform duration-300 ease-in-out z-50 lg:relative lg:translate-x-0 lg:shadow-none">
+        <div class="flex justify-between items-center mb-8">
+            <div class="text-2xl font-bold text-center flex-grow">Question Bank</div>
+            <button id="sidebarCloseBtn" class="lg:hidden p-2 rounded-full hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <nav class="flex-grow">
+            <ul>
+                <li class="mb-4"><a href="{{ url_for('routes.dashboard') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>Dashboard</a></li>
+                <li class="mb-4"><a href="{{ url_for('news.news_feed') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h2m-4 3V5a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"></path></svg>News</a></li>
+                <li class="mb-4"><a href="{{ url_for('routes.browse_levels') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9.207a1 1 0 010-1.414L10.586 5.5a1 1 0 011.414 0l2.358 2.358a1 1 0 010 1.414l-2.358 2.358a1 1 0 01-1.414 0L8.228 9.207zM15 17h.01M12 17h.01M9 17h.01M21 12c0 4.418-4.03 8-9 8a9.986 9.986 0 01-4.243-1.076M4.07 16A9.956 9.956 0 013 12C3 7.582 7.03 4 12 4s9 3.582 9 8z"></path></svg>Browse Questions</a></li>
+                
+                {# --- UPDATED LINE --- #}
+                <li class="mb-4"><a href="{{ url_for('history.saved_questions') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>History</a></li>
+                
+                {% if current_user.is_admin %}<li class="mb-4"><a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.515-1.35 1.76-2.317 3.175-2.317s2.66 1.017 3.175 2.317l.475 1.25H21a1 1 0 011 1v3a1 1 0 01-1 1h-.675l-.475 1.25c-.515 1.35-1.76 2.317-3.175-2.317s-2.66-1.017-3.175-2.317l-.475-1.25H3a1 1 0 01-1-1v-3a1 1 0 011-1h.675l.475-1.25z"></path></svg>Admin Panel</a></li>{% endif %}
+                <li class="mb-4"><a href="{{ url_for('notes.view_notes') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Notes</a></li>
+                               <!-- NEW: Link to Doubt Solver -->
+                <li class="mb-4"><a href="{{ url_for('gemini.doubt_solver_page') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9.207a1 1 0 010-1.414L10.586 5.5a1 1 0 011.414 0l2.358 2.358a1 1 0 010 1.414l-2.358 2.358a1 1 0 01-1.414 0L8.228 9.207zM15 17h.01M12 17h.01M9 17h.01M21 12c0 4.418-4.03 8-9 8a9.986 9.986 0 01-4.243-1.076M4.07 16A9.956 9.956 0 013 12C3 7.582 7.03 4 12 4s9 3.582 9 8z"></path></svg>Doubt Solver</a></li>
+
+                <li class="mb-4"><a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>Routines (Future)</a></li>                              
+                {% if current_user.is_authenticated %}<li class="mb-4"><a href="{{ url_for('auth.logout') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>Logout</a></li>{% endif %}
+            </ul>
+        </nav>
+        <div class="mt-auto text-sm text-gray-400 text-center">&copy; 2025 Question Bank. All rights reserved.</div>
+    </aside>
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black opacity-50 z-40 hidden lg:hidden"></div>
+
+    <main class="flex-1 flex flex-col bg-gray-900 overflow-y-auto transition-colors duration-300">
+        <header class="flex justify-between items-center p-4 bg-gray-950 shadow-md text-gray-100">
+            <button id="sidebarToggleBtn" class="lg:hidden p-2 rounded-full hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <div class="flex items-center ml-auto space-x-4">
+                {% if current_user.is_authenticated %}
+                <span class="text-gray-300 font-medium hidden sm:block">{{ current_user.name }}</span>
+                <a href="{{ url_for('profile.profile') }}" class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-blue-500">
+                    <img src="{{ current_user.profile_pic_url }}?t={{ now().timestamp() | int }}" alt="Profile Picture" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/100x100/A0AEC0/FFFFFF?text=User';">
+                </a>
+                <div class="relative" id="notification-container">
+                    <button id="notification-bell" class="p-2 rounded-full hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
+                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        {% if unread_notification_count > 0 %}<span id="notification-dot" class="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 border-2 border-gray-950"></span>{% endif %}
+                    </button>
+                    <div id="notification-panel" class="hidden absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-20">
+                        <div class="p-4 font-bold border-b border-gray-700">Notifications</div>
+                        <div id="notification-list" class="max-h-96 overflow-y-auto">
+                            {% if notifications and notifications|length > 0 %}{% for notification in notifications %}<div class="p-4 border-b border-gray-700 hover:bg-gray-700"><p class="text-sm text-gray-200">{{ notification.message }}</p><p class="text-xs text-gray-500 mt-1">{{ notification.timestamp.strftime('%b %d, %Y %I:%M %p') }}</p></div>{% endfor %}{% else %}<p class="text-center text-gray-400 p-4">No notifications yet.</p>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+        <div class="p-4">
+            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="p-3 rounded-lg mb-3 {% if category == 'success' %} bg-green-500 text-white {% elif category == 'danger' %} bg-red-500 text-white {% elif category == 'info' %} bg-blue-500 text-white {% elif category == 'warning' %} bg-yellow-500 text-white {% endif %}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
+        </div>
+        <section class="p-6 flex-1">{% block content %}{% endblock %}</section>
+    </main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar'), sidebarToggleBtn = document.getElementById('sidebarToggleBtn'), sidebarCloseBtn = document.getElementById('sidebarCloseBtn'), sidebarOverlay = document.getElementById('sidebarOverlay'), notificationBell = document.getElementById('notification-bell'), notificationPanel = document.getElementById('notification-panel'), notificationDot = document.getElementById('notification-dot');
+            const toggleSidebar = () => { if(sidebar) sidebar.classList.toggle('-translate-x-full'); if(sidebarOverlay) sidebarOverlay.classList.toggle('hidden'); };
+            if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
+            if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', toggleSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+            if (notificationBell) notificationBell.addEventListener('click', () => { notificationPanel.classList.toggle('hidden'); if (!notificationPanel.classList.contains('hidden') && notificationDot) { fetch('/notifications/mark-as-read', { method: 'POST' }).then(response => response.json()).then(data => { if (data.status === 'success') notificationDot.style.display = 'none'; }); } });
+            document.addEventListener('click', function(event) { const container = document.getElementById('notification-container'); if (container && !container.contains(event.target)) if(notificationPanel) notificationPanel.classList.add('hidden'); });
+            window.addEventListener('resize', () => { if (window.innerWidth >= 1024) { if(sidebar) sidebar.classList.remove('-translate-x-full'); if(sidebarOverlay) sidebarOverlay.classList.add('hidden'); } });
+        });
+    </script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainContent = document.querySelector('main');
+
+            if (mainContent) {
+                const renderMathJax = (element) => {
+                    if (window.MathJax && element) {
+                        window.MathJax.typesetPromise([element]);
+                    }
+                };
+
+                mainContent.addEventListener('click', async (event) => {
+                    const target = event.target;
+
+                    const cqToggle = target.closest('.cq-question-toggle');
+                    if (cqToggle) {
+                        const answerDiv = cqToggle.nextElementSibling;
+                        const icon = cqToggle.querySelector('svg');
+                        if (answerDiv) {
+                            answerDiv.classList.toggle('hidden');
+                            icon.classList.toggle('rotate-180');
+                            if (!answerDiv.classList.contains('hidden')) {
+                                renderMathJax(answerDiv);
+                            }
+                        }
+                        return;
+                    }
+
+                    const mcqOption = target.closest('.mcq-option-btn');
+                    if (mcqOption && !mcqOption.disabled) {
+                        const questionId = mcqOption.dataset.questionId;
+                        const selectedOption = mcqOption.dataset.option;
+                        const solutionContainer = document.getElementById(`mcq-solution-container-${questionId}`);
+                        const questionBlock = mcqOption.closest('.question-block');
+                        const actualCorrectAnswer = questionBlock.dataset.correctAnswer;
+
+                        document.querySelectorAll(`.mcq-option-btn[data-question-id="${questionId}"]`).forEach(button => {
+                            button.disabled = true;
+                            button.classList.remove('hover:bg-gray-700');
+                        });
+
+                        if (selectedOption === actualCorrectAnswer) {
+                            mcqOption.classList.remove('bg-black');
+                            mcqOption.classList.add('bg-green-600');
+                        } else {
+                            mcqOption.classList.remove('bg-black');
+                            mcqOption.classList.add('bg-red-600');
+                            const correctButton = document.querySelector(`.mcq-option-btn[data-question-id="${questionId}"][data-option="${actualCorrectAnswer}"]`);
+                            if (correctButton) {
+                                correctButton.classList.remove('bg-black');
+                                correctButton.classList.add('bg-green-600');
+                            }
+                        }
+                        if (solutionContainer) {
+                            solutionContainer.classList.remove('hidden');
+                            renderMathJax(solutionContainer);
+                        }
+                        return;
+                    }
+
+                    const saveBtn = target.closest('.save-question-btn');
+                    if (saveBtn) {
+                        const questionId = saveBtn.dataset.questionId;
+                        try {
+                            const response = await fetch(`/save_question/${questionId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                            const data = await response.json();
+                            if (data.status === 'success') {
+                                saveBtn.textContent = data.action === 'saved' ? 'Unsave Question' : 'Save Question';
+                                if (data.action === 'unsaved' && window.location.pathname.includes('/history')) {
+                                     const questionContainer = document.getElementById(`question-container-${questionId}`);
+                                     if (questionContainer) {
+                                         questionContainer.style.transition = 'opacity 0.5s ease';
+                                         questionContainer.style.opacity = '0';
+                                         setTimeout(() => {
+                                             questionContainer.remove();
+                                             if (document.querySelectorAll('.save-question-btn').length === 0) {
+                                                 document.querySelector('.space-y-8').innerHTML = `<div class="bg-gray-800 p-6 rounded-lg text-center"><p class="text-xl font-semibold text-gray-200">No Saved Questions Yet</p></div>`;
+                                             }
+                                         }, 500);
+                                     }
+                                }
+                                alert(data.message);
+                            } else {
+                                alert('Error: ' + data.message);
+                            }
+                        } catch (error) {
+                            alert('An error occurred.');
+                        }
+                        return;
+                    }
+                    
+                    const reportBtn = target.closest('.report-question-btn');
+                    if (reportBtn) {
+                        const questionId = reportBtn.dataset.questionId;
+                        const reason = prompt("Please provide a reason for reporting this question (optional):");
+                        if (reason === null) return;
+                        try {
+                            const response = await fetch(`/report_question/${questionId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason }) });
+                            const data = await response.json();
+                            alert(data.message);
+                        } catch (error) {
+                            alert('An error occurred while reporting.');
+                        }
+                        return;
+                    }
+                });
+
+                if (window.MathJax) {
+                    window.MathJax.typesetPromise();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

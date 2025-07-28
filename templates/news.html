@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+
+{% block title %}News Feed{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">News & Updates</h1>
+
+<div class="space-y-8 max-w-4xl mx-auto">
+    {% if articles %}
+        {% for article in articles %}
+        <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+            {% if article.image_url %}
+            <img src="{{ article.image_url }}" alt="News Image" class="w-full h-64 object-cover rounded-lg mb-4">
+            {% endif %}
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-2xl font-bold text-gray-100">{{ article.title }}</h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
+                    {% if article.for_ssc %}
+                    <span class="bg-blue-600 text-white px-2 py-1 rounded-full text-xs">SSC</span>
+                    {% endif %}
+                    {% if article.for_hsc %}
+                    <span class="bg-green-600 text-white px-2 py-1 rounded-full text-xs">HSC</span>
+                    {% endif %}
+                </div>
+            </div>
+            <p class="text-sm text-gray-500 mb-4">
+                Posted on {{ article.timestamp.strftime('%B %d, %Y') }}
+            </p>
+            <p class="text-gray-300 whitespace-pre-wrap mb-6">{{ article.content }}</p>
+
+            <!-- Voting Section -->
+            <div class="flex items-center space-x-4" id="vote-section-{{ article.id }}">
+                <button class="vote-btn p-2 rounded-full transition-colors duration-200 flex items-center space-x-2 {% if user_votes.get(article.id) == 1 %} text-green-400 bg-gray-700 {% else %} text-gray-400 hover:bg-gray-700 {% endif %}"
+                        data-article-id="{{ article.id }}" data-vote-type="1">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z"></path></svg>
+                    <span class="font-semibold" id="upvotes-{{ article.id }}">{{ article.upvotes }}</span>
+                </button>
+                <button class="vote-btn p-2 rounded-full transition-colors duration-200 flex items-center space-x-2 {% if user_votes.get(article.id) == -1 %} text-red-400 bg-gray-700 {% else %} text-gray-400 hover:bg-gray-700 {% endif %}"
+                        data-article-id="{{ article.id }}" data-vote-type="-1">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm-3.707-7.293l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414z"></path></svg>
+                    <span class="font-semibold" id="downvotes-{{ article.id }}">{{ article.downvotes }}</span>
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="bg-gray-800 p-6 rounded-lg text-center">
+        <p class="text-gray-300">No news articles have been posted yet. Check back soon!</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.vote-btn').forEach(button => {
+        button.addEventListener('click', async () => {
+            const articleId = button.dataset.articleId;
+            const voteType = parseInt(button.dataset.voteType);
+
+            try {
+                const response = await fetch(`/news/vote/${articleId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vote_type: voteType })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Update vote counts
+                    document.getElementById(`upvotes-${articleId}`).textContent = data.upvotes;
+                    document.getElementById(`downvotes-${articleId}`).textContent = data.downvotes;
+
+                    // Update button styles
+                    const voteSection = document.getElementById(`vote-section-${articleId}`);
+                    const upvoteBtn = voteSection.querySelector('[data-vote-type="1"]');
+                    const downvoteBtn = voteSection.querySelector('[data-vote-type="-1"]');
+
+                    // Reset styles
+                    upvoteBtn.classList.remove('text-green-400', 'bg-gray-700');
+                    downvoteBtn.classList.remove('text-red-400', 'bg-gray-700');
+                    upvoteBtn.classList.add('text-gray-400');
+                    downvoteBtn.classList.add('text-gray-400');
+
+                    // Apply new style based on the vote cast
+                    if (data.user_vote === 1) {
+                        upvoteBtn.classList.add('text-green-400', 'bg-gray-700');
+                    } else if (data.user_vote === -1) {
+                        downvoteBtn.classList.add('text-red-400', 'bg-gray-700');
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error voting:', error);
+                alert('An error occurred while voting.');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

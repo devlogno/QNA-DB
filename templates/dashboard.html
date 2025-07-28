@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Question Bank{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Overview</h1>
+
+<!-- Grid of Boxes -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Total Questions Box -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700
+                dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300">
+        <h2 class="text-xl font-semibold text-gray-200 mb-3">Total Questions</h2>
+        <p class="text-3xl font-bold text-blue-400">{{ total_questions }}</p>
+        <p class="text-sm text-gray-400 mt-2">Across your selected levels</p>
+        <!-- CORRECTED LINK -->
+        <a href="{{ url_for('routes.browse_levels') }}" class="mt-4 w-full block text-center bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity50
+                       dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+            Browse Questions
+        </a>
+    </div>
+
+    <!-- Total MCQs Box -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700
+                dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300">
+        <h2 class="text-xl font-semibold text-gray-200 mb-3">Total MCQs</h2>
+        <p class="text-3xl font-bold text-green-400">{{ total_mcqs }}</p>
+        <p class="text-sm text-gray-400 mt-2">Multiple Choice Questions</p>
+        <!-- CORRECTED LINK -->
+        <a href="{{ url_for('routes.browse_levels') }}" class="mt-4 w-full block text-center bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50
+                       dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+            Practice MCQs
+        </a>
+    </div>
+
+    <!-- Total CQs Box -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700
+                dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300">
+        <h2 class="text-xl font-semibold text-gray-200 mb-3">Total CQs</h2>
+        <p class="text-3xl font-bold text-yellow-400">{{ total_cqs }}</p>
+        <p class="text-sm text-gray-400 mt-2">Creative Questions</p>
+        <!-- CORRECTED LINK -->
+        <a href="{{ url_for('routes.browse_levels') }}" class="mt-4 w-full block text-center bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50
+                       dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+            Review CQs
+        </a>
+    </div>
+
+    <!-- Solved Questions Box -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700
+                dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300">
+        <h2 class="text-xl font-semibold text-gray-200 mb-3">Solved Questions</h2>
+        <p class="text-3xl font-bold text-purple-400">{{ solved_questions }}</p>
+        <p class="text-sm text-gray-400 mt-2">Your progress</p>
+        <button class="mt-4 w-full bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50
+                       dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+            Review Progress (Future)
+        </button>
+    </div>
+
+    <!-- New Questions Added Box -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700
+                dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300">
+        <h2 class="text-xl font-semibold text-gray-200 mb-3">New Questions Added</h2>
+        <p class="text-3xl font-bold text-red-400">{{ new_questions_added }}</p>
+        <p class="text-sm text-gray-400 mt-2">This week</p>
+        <button class="mt-4 w-full bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50
+                       dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+            Explore New (Future)
+        </button>
+    </div>
+
+    <!-- Study Time Box -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700
+                dark:bg-gray-900 dark:border-gray-800 transition-colors duration-300">
+        <h2 class="text-xl font-semibold text-gray-200 mb-3">Study Time</h2>
+        <p class="text-3xl font-bold text-indigo-400">{{ study_time }}</p>
+        <p class="text-sm text-gray-400 mt-2">Last 7 days</p>
+        <button class="mt-4 w-full bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black focus:ring-opacity-50
+                       dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+            View Log (Future)
+        </button>
+    </div>
+</div>
+
+{% endblock %}

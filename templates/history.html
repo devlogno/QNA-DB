@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% from 'partials/_macros.html' import render_question_card %}
+
+{# The block title is now dynamic based on the view #}
+{% block title %}{{ title }} - Question Bank{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+    <h1 class="text-3xl font-bold text-gray-100">
+        {{ title }}
+    </h1>
+    <div class="flex space-x-2">
+        {# Default view is "Saved", so we only need buttons for the other two views #}
+        {# The main sidebar link already points to the "Saved" view #}
+        <a href="{{ url_for('history.reported_questions') }}" 
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-200
+                  {% if active_view == 'reported' %} 
+                      bg-blue-600 text-white 
+                  {% else %} 
+                      bg-gray-700 text-gray-300 hover:bg-gray-600 
+                  {% endif %}">
+            Reported
+        </a>
+        <a href="{{ url_for('history.solved_reports') }}" 
+           class="px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-200
+                  {% if active_view == 'solved' %} 
+                      bg-blue-600 text-white 
+                  {% else %} 
+                      bg-gray-700 text-gray-300 hover:bg-gray-600 
+                  {% endif %}">
+            Solved
+        </a>
+    </div>
+</div>
+
+<div class="space-y-8">
+    {% if questions %}
+        {% for question in questions %}
+            {{ render_question_card(question, loop) }}
+        {% endfor %}
+    {% else %}
+        <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 text-center">
+            {# Generic message that works for all three views #}
+            <p class="text-xl font-semibold text-gray-200">No Questions Found</p>
+            <p class="text-gray-400 mt-2">There are no questions to display in this section.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
