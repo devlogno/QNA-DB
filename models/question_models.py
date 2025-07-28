@@ -5,12 +5,14 @@ class Level(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     streams = db.relationship('Stream', backref='level', lazy='dynamic', cascade="all, delete-orphan")
+    news_articles = db.relationship('NewsArticle', backref='level', lazy='dynamic')
 
 class Stream(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     level_id = db.Column(db.Integer, db.ForeignKey('level.id'), nullable=False)
     boards = db.relationship('Board', backref='stream', lazy='dynamic', cascade="all, delete-orphan")
+    news_articles = db.relationship('NewsArticle', backref='stream', lazy='dynamic')
     __table_args__ = (db.UniqueConstraint('name', 'level_id', name='_stream_level_uc'),)
 
 class Board(db.Model):
@@ -79,8 +81,8 @@ class Question(db.Model):
     answer_d = db.Column(db.Text, nullable=True)
     solution = db.Column(db.Text, nullable=True)
     solution_image_url = db.Column(db.String(200), nullable=True)
-    reports = db.relationship('ReportedQuestion', backref='question', lazy='dynamic', cascade="all, delete-orphan")
-    saved_by = db.relationship('SavedQuestion', backref='question', lazy='dynamic', cascade="all, delete-orphan")
+    reports = db.relationship("ReportedQuestion", backref='question', lazy='dynamic', cascade="all, delete-orphan")
+    saved_by = db.relationship("SavedQuestion", backref='question', lazy='dynamic', cascade="all, delete-orphan")
     question_a_image_url = db.Column(db.String(200), nullable=True)
     answer_a_image_url = db.Column(db.String(200), nullable=True)
     question_b_image_url = db.Column(db.String(200), nullable=True)
