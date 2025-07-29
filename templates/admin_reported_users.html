@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block title %}Reported Users - Admin Panel{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Reported Users</h1>
+
+{% if reports %}
+<div class="space-y-6">
+    {% for report in reports %}
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+        <div class="flex justify-between items-start mb-4 flex-wrap gap-4">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-200">
+                    Report against: <a href="{{ url_for('user.public_profile', public_id=report.reported.public_id) }}" class="text-blue-400 hover:underline">{{ report.reported.name }}</a>
+                </h2>
+                <p class="text-gray-400 text-sm">Reported by: {{ report.reporter.name }} (ID: {{ report.reporter.id }})</p>
+                <p class="text-gray-400 text-sm">Reported on: {{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <form action="{{ url_for('admin.resolve_user_report', report_id=report.id) }}" method="POST">
+                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200">
+                    Mark as Resolved
+                </button>
+            </form>
+        </div>
+        <div>
+            <h3 class="text-lg font-semibold text-gray-200">Report Reason:</h3>
+            <p class="text-red-300 italic p-3 bg-gray-900 rounded-md mt-2">{{ report.reason }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 text-center">
+    <p class="text-xl font-semibold text-gray-200">No unresolved user reports.</p>
+    <p class="text-gray-400 mt-2">All clear!</p>
+</div>
+{% endif %}
+{% endblock %}

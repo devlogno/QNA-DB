@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ user.name }}'s Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-gray-800 rounded-lg shadow-md border border-gray-700 p-8 flex flex-col sm:flex-row items-center gap-8">
+        <div class="flex-shrink-0">
+            <img src="{{ user.profile_pic_url }}" alt="Profile Picture" class="w-32 h-32 rounded-full border-4 border-blue-500 object-cover">
+        </div>
+        <div class="flex-grow text-center sm:text-left">
+            <h1 class="text-3xl font-bold text-white">{{ user.name }}</h1>
+            <p class="text-gray-400 mt-1">{{ user.school or 'Institution not specified' }}</p>
+            {% if current_user.id != user.id %}
+            <button id="report-user-btn" 
+                    class="mt-4 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm"
+                    data-public-id="{{ user.public_id }}">
+                Report User
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-8">
+        <h2 class="text-2xl font-bold text-gray-100 mb-4">Recent Doubt Posts</h2>
+        <div class="space-y-4">
+            {% for post in posts %}
+            <a href="{{ url_for('doubts.community_forum', _anchor='post-' + post.id|string) }}" class="block bg-gray-800 p-4 rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                <h3 class="font-semibold text-white">{{ post.title }}</h3>
+                <p class="text-sm text-gray-400 mt-1 truncate">{{ post.content }}</p>
+                <p class="text-xs text-gray-500 text-right mt-2">{{ post.timestamp.strftime('%b %d, %Y') }}</p>
+            </a>
+            {% else %}
+            <div class="bg-gray-800 p-6 rounded-lg text-center">
+                <p class="text-gray-400">{{ user.name }} has not posted any doubts yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const reportBtn = document.getElementById('report-user-btn');
+    if (reportBtn) {
+        reportBtn.addEventListener('click', async () => {
+            const reason = prompt("Please provide a reason for reporting this user:");
+            if (reason && reason.trim() !== "") {
+                const publicId = reportBtn.dataset.publicId;
+                try {
+                    const response = await fetch(`/user/report/${publicId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reason: reason.trim() })
+                    });
+                    const data = await response.json();
+                    alert(data.message); // Simple alert for feedback
+                } catch (error) {
+                    alert('An error occurred. Please try again.');
+                }
+            } else if (reason !== null) {
+                alert('A reason is required to submit a report.');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

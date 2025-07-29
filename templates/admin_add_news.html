@@ -20,22 +20,109 @@
         <div class="mb-6">
             <label for="image" class="block text-gray-300 text-sm font-bold mb-2">Image (Optional)</label>
             <input type="file" id="image" name="image" accept="image/*"
-                   class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                   class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-700 hover:file:bg-gray-600">
         </div>
-        <div class="mb-6">
+        
+        <!-- UPDATED: Audience Targeting Section -->
+        <div class="mb-6 border-t border-gray-700 pt-6">
             <label class="block text-gray-300 text-sm font-bold mb-2">Target Audience</label>
-            <div class="flex items-center space-x-4">
-                <input type="checkbox" id="for_ssc" name="for_ssc" class="form-checkbox h-5 w-5 text-blue-600 rounded" checked>
-                <label for="for_ssc" class="text-gray-300">SSC</label>
-                <input type="checkbox" id="for_hsc" name="for_hsc" class="form-checkbox h-5 w-5 text-green-600 rounded" checked>
-                <label for="for_hsc" class="text-gray-300">HSC</label>
+            <p class="text-xs text-gray-500 mb-2">Select who should see this news article.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="target_type" class="block text-gray-400 text-xs font-bold mb-1">Target Type</label>
+                    <select id="target_type" name="target_type" class="shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+                        <option value="all" selected>All Users</option>
+                        <option value="level">Specific Level</option>
+                        <option value="stream">Specific Stream</option>
+                    </select>
+                </div>
+
+                <div id="level-select-container" class="hidden">
+                    <label for="level_id" class="block text-gray-400 text-xs font-bold mb-1">Select Level</label>
+                    <select id="level_id" name="level_id" class="shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+                        <option value="">-- Select a Level --</option>
+                        {% for level in levels %}
+                        <option value="{{ level.id }}">{{ level.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="stream-select-container" class="hidden">
+                    <label for="stream_id" class="block text-gray-400 text-xs font-bold mb-1">Select Stream</label>
+                    <select id="stream_id" name="stream_id" class="shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700">
+                        <option value="">-- Select a Stream --</option>
+                    </select>
+                </div>
             </div>
-            <p class="text-xs text-gray-500 mt-1">Select who should see this news article.</p>
         </div>
+        
         <button type="submit"
                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200">
             Post News
         </button>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const targetTypeSelect = document.getElementById('target_type');
+    const levelContainer = document.getElementById('level-select-container');
+    const streamContainer = document.getElementById('stream-select-container');
+    const levelSelect = document.getElementById('level_id');
+    const streamSelect = document.getElementById('stream_id');
+    
+    // This data is passed from the admin.py route
+    const streamsByLevel = {{ streams_by_level|tojson|safe }};
+
+    function toggleTargetFields() {
+        const selectedType = targetTypeSelect.value;
+        
+        // Hide all by default
+        levelContainer.classList.add('hidden');
+        streamContainer.classList.add('hidden');
+        
+        // Disable inputs to prevent submission when hidden
+        levelSelect.disabled = true;
+        streamSelect.disabled = true;
+
+        if (selectedType === 'level') {
+            levelContainer.classList.remove('hidden');
+            levelSelect.disabled = false;
+        } else if (selectedType === 'stream') {
+            levelContainer.classList.remove('hidden');
+            streamContainer.classList.remove('hidden');
+            levelSelect.disabled = false;
+            streamSelect.disabled = false;
+            // Trigger change to populate streams for the currently selected level
+            populateStreams();
+        }
+    }
+
+    function populateStreams() {
+        const selectedLevelId = levelSelect.value;
+        streamSelect.innerHTML = '<option value="">-- Select a Stream --</option>'; // Reset
+        
+        if (selectedLevelId && streamsByLevel[selectedLevelId]) {
+            const streams = streamsByLevel[selectedLevelId];
+            streams.forEach(stream => {
+                const option = new Option(stream.name, stream.id);
+                streamSelect.add(option);
+            });
+        }
+    }
+
+    targetTypeSelect.addEventListener('change', toggleTargetFields);
+    levelSelect.addEventListener('change', () => {
+        // Only repopulate if the stream target is selected
+        if (targetTypeSelect.value === 'stream') {
+            populateStreams();
+        }
+    });
+
+    // Initial call to set the correct state on page load
+    toggleTargetFields();
+});
+</script>
+
 {% endblock %}

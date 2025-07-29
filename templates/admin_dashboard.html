@@ -9,44 +9,32 @@
     <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-semibold text-gray-200 mb-3">Total Questions</h2>
         <p class="text-3xl font-bold text-blue-400">{{ total_questions }}</p>
-        <p class="text-sm text-gray-400 mt-2">Questions in the database</p>
     </div>
     <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-semibold text-gray-200 mb-3">Reported Questions</h2>
-        <p class="text-3xl font-bold text-red-400">{{ total_reported }}</p>
-        <p class="text-sm text-gray-400 mt-2">Unresolved reports</p>
-        <a href="{{ url_for('admin.reported_questions') }}" class="mt-4 w-full block text-center bg-red-700 text-white py-2 px-4 rounded-lg hover:bg-red-800 transition-colors duration-200">
-            View Reports
-        </a>
+        <p class="text-3xl font-bold text-red-400">{{ total_reported_q }}</p>
+        <a href="{{ url_for('admin.reported_questions') }}" class="mt-4 w-full block text-center bg-red-700 text-white py-2 px-4 rounded-lg hover:bg-red-800">View Reports</a>
     </div>
-    <!-- NEW CARD -->
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+        <h2 class="text-xl font-semibold text-gray-200 mb-3">Reported Users</h2>
+        <p class="text-3xl font-bold text-orange-400">{{ total_reported_u }}</p>
+        <a href="{{ url_for('admin.reported_users') }}" class="mt-4 w-full block text-center bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700">View Reports</a>
+    </div>
     <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-semibold text-gray-200 mb-3">Add New Question</h2>
-        <p class="text-sm text-gray-400 mt-2">Add MCQ or CQ to the bank.</p>
-        <a href="{{ url_for('admin.add_question') }}" class="mt-4 w-full block text-center bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200">
-            Add Question
-        </a>
+        <a href="{{ url_for('admin.add_question') }}" class="mt-4 w-full block text-center bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add Question</a>
     </div>
     <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-semibold text-gray-200 mb-3">Manage Categories</h2>
-        <p class="text-sm text-gray-400 mt-2">Edit levels, subjects, chapters, etc.</p>
-        <a href="{{ url_for('admin.manage_categories') }}" class="mt-4 w-full block text-center bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700 transition-colors duration-200">
-            Manage Categories
-        </a>
+        <a href="{{ url_for('admin.manage_categories') }}" class="mt-4 w-full block text-center bg-yellow-600 text-white py-2 px-4 rounded-lg hover:bg-yellow-700">Manage</a>
     </div>
     <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-semibold text-gray-200 mb-3">Send Notification</h2>
-        <p class="text-sm text-gray-400 mt-2">Send a message to users</p>
-        <a href="{{ url_for('admin.send_notification') }}" class="mt-4 w-full block text-center bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors duration-200">
-            Send Notification
-        </a>
+        <a href="{{ url_for('admin.send_notification') }}" class="mt-4 w-full block text-center bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700">Send</a>
     </div>
     <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-semibold text-gray-200 mb-3">Add News</h2>
-        <p class="text-sm text-gray-400 mt-2">Post a new article</p>
-        <a href="{{ url_for('admin.add_news') }}" class="mt-4 w-full block text-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-            Add News
-        </a>
+        <a href="{{ url_for('admin.add_news') }}" class="mt-4 w-full block text-center bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">Add News</a>
     </div>
 </div>
 {% endblock %}

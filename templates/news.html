@@ -12,14 +12,17 @@
             {% if article.image_url %}
             <img src="{{ article.image_url }}" alt="News Image" class="w-full h-64 object-cover rounded-lg mb-4">
             {% endif %}
-            <div class="flex justify-between items-center mb-2">
+            <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
                 <h2 class="text-2xl font-bold text-gray-100">{{ article.title }}</h2>
+                
+                <!-- UPDATED: Target audience tags -->
                 <div class="flex items-center space-x-2 text-sm text-gray-400">
-                    {% if article.for_ssc %}
-                    <span class="bg-blue-600 text-white px-2 py-1 rounded-full text-xs">SSC</span>
-                    {% endif %}
-                    {% if article.for_hsc %}
-                    <span class="bg-green-600 text-white px-2 py-1 rounded-full text-xs">HSC</span>
+                    {% if article.stream %}
+                        <span class="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ article.stream.name }}</span>
+                    {% elif article.level %}
+                        <span class="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ article.level.name }}</span>
+                    {% else %}
+                        <span class="bg-gray-600 text-white px-2 py-1 rounded-full text-xs font-semibold">General</span>
                     {% endif %}
                 </div>
             </div>
@@ -45,7 +48,7 @@
         {% endfor %}
     {% else %}
     <div class="bg-gray-800 p-6 rounded-lg text-center">
-        <p class="text-gray-300">No news articles have been posted yet. Check back soon!</p>
+        <p class="text-gray-300">No news articles have been posted for you yet. Check back soon!</p>
     </div>
     {% endif %}
 </div>
@@ -71,22 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (data.status === 'success') {
-                    // Update vote counts
                     document.getElementById(`upvotes-${articleId}`).textContent = data.upvotes;
                     document.getElementById(`downvotes-${articleId}`).textContent = data.downvotes;
 
-                    // Update button styles
                     const voteSection = document.getElementById(`vote-section-${articleId}`);
                     const upvoteBtn = voteSection.querySelector('[data-vote-type="1"]');
                     const downvoteBtn = voteSection.querySelector('[data-vote-type="-1"]');
 
-                    // Reset styles
                     upvoteBtn.classList.remove('text-green-400', 'bg-gray-700');
                     downvoteBtn.classList.remove('text-red-400', 'bg-gray-700');
                     upvoteBtn.classList.add('text-gray-400');
                     downvoteBtn.classList.add('text-gray-400');
 
-                    // Apply new style based on the vote cast
                     if (data.user_vote === 1) {
                         upvoteBtn.classList.add('text-green-400', 'bg-gray-700');
                     } else if (data.user_vote === -1) {
