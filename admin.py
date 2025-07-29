@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from extensions import db
-from models import Question, ReportedQuestion, User, Notification, NewsArticle
+from models import Question, ReportedQuestion, User, Notification, NewsArticle, UserReport
 from models import Level, Stream, Board, Subject, Chapter, Topic
 
 admin_bp = Blueprint('admin', __name__)
@@ -211,31 +211,48 @@ def add_news():
     if request.method == 'POST':
         title = request.form.get('title')
         content = request.form.get('content')
-        for_ssc = 'for_ssc' in request.form
-        for_hsc = 'for_hsc' in request.form
         
         if not title or not content:
             flash('Title and content are required.', 'danger')
             return redirect(url_for('admin.add_news'))
             
-        # --- UPDATED: Image handling logic for news ---
         image_url = None
         if 'image' in request.files and request.files['image'].filename != '':
             image_url = upload_file(request.files.get('image'))
 
+        # --- UPDATED: Logic for handling targeted news ---
+        target_type = request.form.get('target_type')
+        level_id = request.form.get('level_id')
+        stream_id = request.form.get('stream_id')
+
         new_article = NewsArticle(
             title=title, 
             content=content, 
-            for_ssc=for_ssc, 
-            for_hsc=for_hsc,
             image_url=image_url
         )
+
+        if target_type == 'level' and level_id:
+            new_article.level_id = int(level_id)
+        elif target_type == 'stream' and stream_id:
+            stream = Stream.query.get(int(stream_id))
+            if stream:
+                new_article.level_id = stream.level_id
+                new_article.stream_id = int(stream_id)
+        # If target_type is 'all', both level_id and stream_id remain None
+
         db.session.add(new_article)
         db.session.commit()
         flash('News article posted successfully!', 'success')
         return redirect(url_for('admin.admin_dashboard'))
         
-    return render_template('admin_add_news.html')
+    # --- UPDATED: Pass levels and streams data to the template ---
+    levels = Level.query.order_by(Level.name).all()
+    # Create a dictionary for easy access in JavaScript
+    streams_by_level = {
+        level.id: [{'id': stream.id, 'name': stream.name} for stream in level.streams] 
+        for level in levels
+    }
+    return render_template('admin_add_news.html', levels=levels, streams_by_level=streams_by_level)
 
 @admin_bp.route('/send_notification', methods=['GET', 'POST'])
 @admin_required
@@ -375,3 +392,23 @@ def handle_category_item(category_name, item_id):
         except Exception as e:
             db.session.rollback()
             return jsonify({'success': False, 'message': str(e)}), 500
+        
+
+
+
+
+# --- NEW: User Report Management ---
+@admin_bp.route('/reported_users')
+@admin_required
+def reported_users():
+    reports = UserReport.query.filter_by(is_resolved=False).order_by(UserReport.timestamp.desc()).all()
+    return render_template('admin_reported_users.html', reports=reports)
+
+@admin_bp.route('/resolve_user_report/<int:report_id>', methods=['POST'])
+@admin_required
+def resolve_user_report(report_id):
+    report = UserReport.query.get_or_404(report_id)
+    report.is_resolved = True
+    db.session.commit()
+    flash('User report marked as resolved.', 'success')
+    return redirect(url_for('admin.reported_users'))

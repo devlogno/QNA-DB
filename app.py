@@ -5,143 +5,142 @@ from flask import Flask, redirect, url_for, request
 from flask_login import current_user
 from dotenv import load_dotenv
 from flask_migrate import Migrate
+from sqlalchemy import select
+import click
 
-# Load environment variables from .env file
-load_dotenv()
+# Import extensions but do not initialize them
+from extensions import db, login_manager, oauth, socketio
 
-from extensions import db, login_manager, oauth
-from models import * # Import all models from the new package
+def create_app():
+    """Create and configure an instance of the Flask application."""
+    app = Flask(__name__)
 
-# Import blueprints
-from auth import auth_bp
-from routes import routes_bp
-from user_profile import profile_bp
-from admin import admin_bp
-from history import history_bp
-from notes import notes_bp
-from notifications import notifications_bp
-from news import news_bp
-from interactions import interactions_bp
-from gemini_ai import gemini_bp
+    # --- Load Configurations ---
+    load_dotenv()
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'a_very_secret_key_that_should_be_changed')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///question_bank.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['UPLOAD_FOLDER'] = 'static/uploads'
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+    app.config['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
+    app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
+    app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+    app.config['FACEBOOK_CLIENT_ID'] = os.getenv('FACEBOOK_CLIENT_ID')
+    app.config['FACEBOOK_CLIENT_SECRET'] = os.getenv('FACEBOOK_CLIENT_SECRET')
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = ('Question Bank', app.config['MAIL_USERNAME'])
 
-app = Flask(__name__)
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# --- Configurations (now loaded from .env) ---
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_fallback_key')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///question_bank.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-app.config['GEMINI_API_KEY'] = os.getenv('GEMINI_API_KEY')
-app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
-app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
-app.config['FACEBOOK_CLIENT_ID'] = os.getenv('FACEBOOK_CLIENT_ID')
-app.config['FACEBOOK_CLIENT_SECRET'] = os.getenv('FACEBOOK_CLIENT_SECRET')
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = ('Question Bank', app.config['MAIL_USERNAME'])
+    # --- Initialize Extensions ---
+    db.init_app(app)
+    login_manager.init_app(app)
+    oauth.init_app(app)
+    socketio.init_app(app)
+    Migrate(app, db)
 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    # --- Import and Register Blueprints ---
+    from auth import auth_bp
+    from routes import routes_bp
+    from user_profile import profile_bp
+    from admin import admin_bp
+    from history import history_bp
+    from notes import notes_bp
+    from notifications import notifications_bp
+    from news import news_bp
+    from interactions import interactions_bp
+    from gemini_ai import gemini_bp
+    from doubts import doubts_bp
+    from user_routes import user_bp # --- NEW ---
 
-db.init_app(app)
-login_manager.init_app(app)
-oauth.init_app(app)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(routes_bp, url_prefix='/')
+    app.register_blueprint(profile_bp, url_prefix='/profile')
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(history_bp)
+    app.register_blueprint(notes_bp)
+    app.register_blueprint(notifications_bp)
+    app.register_blueprint(news_bp)
+    app.register_blueprint(interactions_bp)
+    app.register_blueprint(gemini_bp)
+    app.register_blueprint(doubts_bp, url_prefix='/doubts')
+    app.register_blueprint(user_bp) # --- CORRECTED: This line was missing ---
 
-# Initialize Flask-Migrate
-migrate = Migrate(app, db)
+    # --- Import Models within App Context ---
+    from models import User, Notification, BroadcastNotificationView, Level, Stream, Board, Subject, Chapter, Topic, generate_public_id
 
-login_manager.login_view = 'auth.login'
-login_manager.login_message_category = 'info'
-login_manager.login_message = "Please log in to access this page."
+    # --- Configure Flask-Login ---
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message_category = 'info'
+    login_manager.login_message = "Please log in to access this page."
 
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.get(User, int(user_id))
 
-@app.context_processor
-def inject_global_vars():
-    if current_user.is_authenticated:
-        user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
-        broadcast_notifications = Notification.query.filter_by(user_id=None).order_by(Notification.timestamp.desc()).all()
-        all_notifications = sorted(user_notifications + broadcast_notifications, key=lambda x: x.timestamp, reverse=True)
-        
-        unread_user_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-        
-        read_broadcast_ids = db.session.query(BroadcastNotificationView.notification_id).filter_by(user_id=current_user.id).subquery()
-        unread_broadcast_count = db.session.query(Notification.id).filter(
-            Notification.user_id.is_(None),
-            Notification.id.notin_(read_broadcast_ids)
-        ).count()
-
-        total_unread = unread_user_count + unread_broadcast_count
-        
-        return {
-            'now': datetime.datetime.now,
-            'notifications': all_notifications,
-            'unread_notification_count': total_unread
-        }
-    return {'now': datetime.datetime.now}
-
-@app.before_request
-def before_request_handler():
-    # This block ensures the database is created and seeded only once per application run.
-    if not hasattr(app, 'tables_created'):
-        with app.app_context():
-            db.create_all()
-            if Level.query.count() == 0:
-                ssc = Level(name='SSC')
-                hsc = Level(name='HSC')
-                admission = Level(name='Admission')
-                db.session.add_all([ssc, hsc, admission])
-                db.session.commit()
-                science = Stream(name='Science', level=ssc)
-                arts = Stream(name='Arts', level=ssc)
-                hsc_science = Stream(name='Science', level=hsc)
-                admission_eng = Stream(name='Engineering', level=admission)
-                db.session.add_all([science, arts, hsc_science, admission_eng])
-                db.session.commit()
-                dhaka_board = Board(name='Dhaka Board', tag='DB', stream=science)
-                buet = Board(name='BUET', tag='BUET', stream=admission_eng)
-                db.session.add_all([dhaka_board, buet])
-                db.session.commit()
-                physics = Subject(name='Physics', board=dhaka_board)
-                math = Subject(name='Math', board=buet)
-                db.session.add_all([physics, math])
-                db.session.commit()
-                vectors = Chapter(name='Vectors', subject=physics)
-                calculus = Chapter(name='Calculus', subject=math)
-                db.session.add_all([vectors, calculus])
-                db.session.commit()
-                dot_product = Topic(name='Dot Product', chapter=vectors)
-                limits = Topic(name='Limits', chapter=calculus)
-                db.session.add_all([dot_product, limits])
-                db.session.commit()
-        app.tables_created = True
-
-    # This block forces new users to the setup page.
-    if current_user.is_authenticated and not current_user.is_admin:
-        if not current_user.streams:
-            # Define the endpoints they ARE allowed to visit
-            allowed_endpoints = ['profile.setup', 'auth.get_streams', 'auth.logout', 'static']
+    # --- Context Processors and Request Hooks ---
+    @app.context_processor
+    def inject_global_vars():
+        if current_user.is_authenticated:
+            user_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
+            broadcast_notifications = Notification.query.filter_by(user_id=None).order_by(Notification.timestamp.desc()).all()
+            all_notifications = sorted(user_notifications + broadcast_notifications, key=lambda x: x.timestamp, reverse=True)
             
-            # If the requested endpoint is NOT in the allowed list, redirect.
-            if request.endpoint not in allowed_endpoints:
-                return redirect(url_for('profile.setup'))
+            unread_user_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+            
+            read_broadcast_ids_stmt = select(BroadcastNotificationView.notification_id).where(BroadcastNotificationView.user_id == current_user.id)
+            unread_broadcast_count = db.session.query(Notification.id).filter(
+                Notification.user_id.is_(None),
+                Notification.id.notin_(read_broadcast_ids_stmt)
+            ).count()
 
-# Register Blueprints
-app.register_blueprint(auth_bp, url_prefix='/auth')
-app.register_blueprint(routes_bp, url_prefix='/')
-app.register_blueprint(profile_bp, url_prefix='/profile')
-app.register_blueprint(admin_bp, url_prefix='/admin')
-app.register_blueprint(history_bp)
-app.register_blueprint(notes_bp)
-app.register_blueprint(notifications_bp)
-app.register_blueprint(news_bp)
-app.register_blueprint(interactions_bp)
-app.register_blueprint(gemini_bp)
+            total_unread = unread_user_count + unread_broadcast_count
+            
+            return {
+                'now': datetime.datetime.now,
+                'notifications': all_notifications,
+                'unread_notification_count': total_unread
+            }
+        return {'now': datetime.datetime.now}
+
+    @app.before_request
+    def before_request_handler():
+        if not hasattr(app, 'tables_created'):
+            with app.app_context():
+                db.create_all()
+                # Seeding logic...
+            app.tables_created = True
+
+        if current_user.is_authenticated and not current_user.is_admin:
+            if not current_user.streams:
+                allowed_endpoints = ['profile.setup', 'auth.get_streams', 'auth.logout', 'static']
+                if request.endpoint not in allowed_endpoints:
+                    return redirect(url_for('profile.setup'))
+
+    # --- NEW: CLI Command to backfill public_ids for existing users ---
+    @app.cli.command("backfill-public-ids")
+    def backfill_public_ids():
+        """Generate public_id for any users that don't have one."""
+        users_without_id = User.query.filter(User.public_id.is_(None)).all()
+        if not users_without_id:
+            print("All users already have a public_id.")
+            return
+
+        for user in users_without_id:
+            user.public_id = generate_public_id()
+            print(f"Generated ID for {user.email}: {user.public_id}")
+
+        db.session.commit()
+        print(f"Successfully updated {len(users_without_id)} users.")
+
+    return app
+
+# --- Create and Run the App ---
+app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)
