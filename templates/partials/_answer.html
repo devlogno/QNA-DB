@@ -1,0 +1,46 @@
+<div class="ml-4 mt-4 p-4 bg-gray-800 rounded-lg border-l-2 border-gray-700" id="answer-{{ answer.id }}">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center">
+            <a href="{{ url_for('user.public_profile', public_id=answer.author.public_id) }}">
+                <img src="{{ answer.author.profile_pic_url }}" class="w-8 h-8 rounded-full mr-3">
+            </a>
+            <div>
+                <a href="{{ url_for('user.public_profile', public_id=answer.author.public_id) }}" class="hover:underline">
+                    <p class="font-semibold text-white">{{ answer.author.name }}</p>
+                </a>
+                <p class="text-xs text-gray-500">{{ answer.timestamp.strftime('%b %d, %Y %I:%M %p') }}</p>
+            </div>
+        </div>
+        {% if current_user.is_authenticated and (current_user.id == answer.user_id or current_user.is_admin) %}
+        <button class="delete-answer-btn text-gray-500 hover:text-red-500 text-xs" data-answer-id="{{ answer.id }}">Delete</button>
+        {% endif %}
+    </div>
+    <div class="text-gray-300 mt-2 pl-11">
+        <p class="whitespace-pre-wrap">{{ answer.content }}</p>
+        <div class="flex flex-col gap-2 mt-2">
+            {% for image in answer.images %}
+                <img src="{{ image.image_url }}" class="max-w-md rounded-lg">
+            {% endfor %}
+        </div>
+    </div>
+    <div class="pl-11 mt-2">
+        <button class="reply-btn text-blue-400 hover:underline text-sm" data-post-id="{{ answer.post_id }}" data-parent-id="{{ answer.id }}">Reply</button>
+    </div>
+    
+    {% if answer.replies.all() %}
+    <div class="pl-11 mt-3">
+        <button class="view-replies-btn text-sm text-gray-400 hover:text-white" data-reply-count="{{ answer.replies.count() }}">
+            View {{ answer.replies.count() }} Replies
+        </button>
+        <div class="replies-container ml-4 border-l-2 border-gray-600 hidden">
+             {% for reply in answer.replies.order_by('timestamp') %}
+                 {% with answer=reply %}
+                     {% include 'partials/_answer.html' %}
+                 {% endwith %}
+             {% endfor %}
+        </div>
+    </div>
+    {% else %}
+        <div class="replies-container ml-4 border-l-2 border-gray-600"></div>
+    {% endif %}
+</div>
