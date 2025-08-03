@@ -4,7 +4,8 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user, logout_user
 from werkzeug.utils import secure_filename
 from extensions import db
-from models import Level, Stream, User, SavedQuestion, ReportedQuestion
+from models import Level, Stream, User, SavedQuestion, ReportedQuestion, ExamSession
+from sqlalchemy import func
 
 profile_bp = Blueprint('profile', __name__)
 
@@ -36,7 +37,6 @@ def setup():
 @login_required
 def profile():
     if request.method == 'POST':
-        # --- NEW: Handle name and school updates ---
         new_name = request.form.get('name')
         new_school = request.form.get('school')
         
@@ -44,7 +44,7 @@ def profile():
             flash('Name cannot be empty.', 'danger')
         else:
             current_user.name = new_name
-            current_user.school = new_school # It's okay if this is empty
+            current_user.school = new_school
             flash('Personal information updated successfully!', 'success')
 
         if 'profile_pic' in request.files and request.files['profile_pic'].filename != '':
@@ -71,9 +71,15 @@ def profile():
         db.session.commit()
         return redirect(url_for('profile.profile'))
 
+    # --- ADDED: Calculate total study time ---
+    total_seconds = db.session.query(func.sum(ExamSession.time_taken_seconds)).filter_by(user_id=current_user.id).scalar() or 0
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    study_time_str = f"{hours}h {minutes}m"
+
     all_levels = Level.query.order_by(Level.name).all()
     user_stream_ids = {stream.id for stream in current_user.streams}
-    return render_template('profile.html', all_levels=all_levels, user_stream_ids=user_stream_ids)
+    return render_template('profile.html', all_levels=all_levels, user_stream_ids=user_stream_ids, study_time=study_time_str)
 
 @profile_bp.route('/delete_account', methods=['POST'])
 @login_required
@@ -85,8 +91,7 @@ def delete_account():
     try:
         user_to_delete = User.query.get(current_user.id)
         user_to_delete.streams.clear()
-        SavedQuestion.query.filter_by(user_id=user_to_delete.id).delete()
-        ReportedQuestion.query.filter_by(reporter_id=user_to_delete.id).delete()
+        # You might want to delete other user-related data here
         db.session.delete(user_to_delete)
         db.session.commit()
         logout_user()

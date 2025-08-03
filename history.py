@@ -1,7 +1,7 @@
 # history.py
 from flask import Blueprint, render_template
 from flask_login import login_required, current_user
-from models import SavedQuestion, ReportedQuestion
+from models import SavedQuestion, ReportedQuestion, ExamSession
 
 history_bp = Blueprint('history', __name__)
 
@@ -15,7 +15,6 @@ def saved_questions():
     saved_entries = SavedQuestion.query.filter_by(user_id=current_user.id).order_by(SavedQuestion.timestamp.desc()).all()
     questions = [entry.question for entry in saved_entries]
 
-    # Mark all questions as saved for the purpose of the template macro
     for q in questions:
         q.is_saved = True
 
@@ -39,7 +38,6 @@ def reported_questions():
     
     questions = [entry.question for entry in reported_entries]
 
-    # Check the saved status for each question
     saved_question_ids = {sq.question_id for sq in current_user.saved_questions}
     for q in questions:
         q.is_saved = q.id in saved_question_ids
@@ -64,7 +62,6 @@ def solved_reports():
     
     questions = [entry.question for entry in solved_entries]
 
-    # Check the saved status for each question
     saved_question_ids = {sq.question_id for sq in current_user.saved_questions}
     for q in questions:
         q.is_saved = q.id in saved_question_ids
@@ -74,4 +71,18 @@ def solved_reports():
         questions=questions, 
         title="Your Solved Reports",
         active_view='solved'
+    )
+
+@history_bp.route('/history/exams')
+@login_required
+def exam_history():
+    """
+    Displays the list of exams taken by the user.
+    """
+    exams = ExamSession.query.filter_by(user_id=current_user.id).order_by(ExamSession.timestamp.desc()).all()
+    return render_template(
+        'history.html',
+        exams=exams,
+        title="Your Exam History",
+        active_view='exams'
     )

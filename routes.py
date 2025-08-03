@@ -1,7 +1,9 @@
 # routes.py
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
-from models import Question, Level, Stream, Board, SavedQuestion
+from models import Question, Level, Stream, Board, SavedQuestion, ExamSession
+from extensions import db
+from sqlalchemy import func
 
 routes_bp = Blueprint('routes', __name__)
 
@@ -12,7 +14,6 @@ def home():
 @routes_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # Dashboard stats are based on user's selected streams
     user_stream_ids = [stream.id for stream in current_user.streams]
     
     question_query = Question.query
@@ -23,13 +24,17 @@ def dashboard():
     total_mcqs = question_query.filter(Question.question_type == 'MCQ').count()
     total_cqs = question_query.filter(Question.question_type == 'CQ').count()
 
+    # --- ADDED: Calculate total study time ---
+    total_seconds = db.session.query(func.sum(ExamSession.time_taken_seconds)).filter_by(user_id=current_user.id).scalar() or 0
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    study_time_str = f"{hours}h {minutes}m"
+
     return render_template('dashboard.html',
                            total_questions=total_questions,
                            total_mcqs=total_mcqs,
                            total_cqs=total_cqs,
-                           solved_questions=0, # Placeholder
-                           new_questions_added=0, # Placeholder
-                           study_time="0h 0m") # Placeholder
+                           study_time=study_time_str)
 
 # --- Browsing structure ---
 @routes_bp.route('/browse')

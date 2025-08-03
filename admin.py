@@ -1,10 +1,12 @@
 # admin.py
 import os
 import functools
+import json
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
-from extensions import db
+# --- MODIFIED: Import Notification model and socketio instance ---
+from extensions import db, socketio
 from models import Question, ReportedQuestion, User, Notification, NewsArticle, UserReport
 from models import Level, Stream, Board, Subject, Chapter, Topic
 
@@ -55,6 +57,71 @@ def manage_categories():
 @admin_required
 def add_question():
     if request.method == 'POST':
+        # --- MODIFIED: Check if a JSON file was uploaded ---
+        if 'questions_file' in request.files and request.files['questions_file'].filename != '':
+            file = request.files['questions_file']
+            if file and file.filename.endswith('.json'):
+                try:
+                    questions_data = json.load(file)
+                    if not isinstance(questions_data, list):
+                        flash('JSON file must contain a list of question objects.', 'danger')
+                        return redirect(url_for('admin.add_question'))
+
+                    success_count = 0
+                    fail_count = 0
+                    
+                    for q_data in questions_data:
+                        try:
+                            new_question = Question(
+                                question_type=q_data.get('question_type'),
+                                question_text=q_data.get('question_text'),
+                                year=q_data.get('year'),
+                                complexity=q_data.get('complexity', 5),
+                                solution=q_data.get('solution'),
+                                level_id=q_data.get('level_id'),
+                                stream_id=q_data.get('stream_id'),
+                                board_id=q_data.get('board_id'),
+                                subject_id=q_data.get('subject_id'),
+                                chapter_id=q_data.get('chapter_id'),
+                                topic_id=q_data.get('topic_id')
+                            )
+
+                            if new_question.question_type == 'MCQ':
+                                options = q_data.get('options', {})
+                                new_question.option_a = options.get('a')
+                                new_question.option_b = options.get('b')
+                                new_question.option_c = options.get('c')
+                                new_question.option_d = options.get('d')
+                                new_question.correct_answer = q_data.get('correct_answer')
+                            
+                            elif new_question.question_type == 'CQ':
+                                sub_questions = q_data.get('sub_questions', {})
+                                new_question.question_a = sub_questions.get('a', {}).get('question')
+                                new_question.answer_a = sub_questions.get('a', {}).get('answer')
+                                new_question.question_b = sub_questions.get('b', {}).get('question')
+                                new_question.answer_b = sub_questions.get('b', {}).get('answer')
+                                new_question.question_c = sub_questions.get('c', {}).get('question')
+                                new_question.answer_c = sub_questions.get('c', {}).get('answer')
+                                new_question.question_d = sub_questions.get('d', {}).get('question')
+                                new_question.answer_d = sub_questions.get('d', {}).get('answer')
+
+                            db.session.add(new_question)
+                            success_count += 1
+                        except Exception as e:
+                            print(f"Failed to process a question from JSON: {e}")
+                            fail_count += 1
+                    
+                    db.session.commit()
+                    flash(f'Bulk import complete. Successfully added {success_count} questions. Failed to add {fail_count} questions.', 'success')
+                except json.JSONDecodeError:
+                    flash('Invalid JSON file. Please check the file format.', 'danger')
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f'An unexpected error occurred during bulk import: {str(e)}', 'danger')
+                
+                return redirect(url_for('admin.add_question'))
+        
+        # --- Existing logic for single question form ---
         try:
             new_question = Question(
                 question_type=request.form.get('question_type'),
@@ -115,6 +182,8 @@ def add_question():
     levels = Level.query.all()
     levels_data = [{'id': level.id, 'name': level.name} for level in levels]
     return render_template('admin_add_question.html', levels_data=levels_data)
+
+# ... (rest of admin.py remains the same) ...
 
 @admin_bp.route('/edit_question/<int:question_id>', methods=['GET', 'POST'])
 @admin_required
@@ -294,8 +363,39 @@ def reported_questions():
 def resolve_report(report_id):
     report = ReportedQuestion.query.get_or_404(report_id)
     report.is_resolved = True
+
+    # --- ADDED: Notification Logic ---
+    try:
+        reporter_id = report.reporter_id
+        question = report.question
+        
+        # Create a link back to the question
+        link = url_for('routes.view_board_questions', 
+                       board_id=question.board_id, 
+                       question_type=question.question_type)
+        
+        message = f"Your report for the question '{question.question_text[:30]}...' has been resolved. Thank you!"
+
+        # Create the notification in the database
+        new_notification = Notification(
+            user_id=reporter_id,
+            message=message,
+            link_url=link
+        )
+        db.session.add(new_notification)
+        
+        # Send a real-time notification via Socket.IO
+        socketio.emit('new_notification', 
+                      {'message': message, 'link': link}, 
+                      room=f'user_{reporter_id}')
+                      
+    except Exception as e:
+        print(f"Error sending notification for resolved report: {e}")
+        # We don't want to stop the main process if notification fails
+        pass
+
     db.session.commit()
-    flash('Report marked as resolved.', 'success')
+    flash('Report marked as resolved and user notified.', 'success')
     return redirect(url_for('admin.reported_questions'))
 
 # --- API for Managing Categories ---
@@ -393,10 +493,6 @@ def handle_category_item(category_name, item_id):
             db.session.rollback()
             return jsonify({'success': False, 'message': str(e)}), 500
         
-
-
-
-
 # --- NEW: User Report Management ---
 @admin_bp.route('/reported_users')
 @admin_required

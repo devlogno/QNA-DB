@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from extensions import db
 from models import ChatHistory
 from PIL import Image
+from decorators import check_access
 
 gemini_bp = Blueprint('gemini', __name__)
 
@@ -23,14 +24,12 @@ def upload_file(file):
     if file and file.filename != '':
         try:
             filename = secure_filename(file.filename)
-            # Create a user-specific directory
             user_upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'doubts', str(current_user.id))
             os.makedirs(user_upload_dir, exist_ok=True)
             
             filepath = os.path.join(user_upload_dir, filename)
             file.save(filepath)
             
-            # Return a path with forward slashes, relative to the 'static' folder
             relative_path = os.path.join('uploads', 'doubts', str(current_user.id), filename)
             return relative_path.replace("\\", "/")
         except Exception as e:
@@ -43,10 +42,10 @@ def upload_file(file):
 def doubt_solver_page():
     """Renders the main doubt solver page with chat history."""
     chat_history = ChatHistory.query.filter_by(user_id=current_user.id).order_by(ChatHistory.timestamp.desc()).all()
-    return render_template('doubt_solver.html', chat_history=chat_history)
+    return render_template('doubt_solver.html', chat_history=chat_history, ai_doubts_left=current_user.ai_doubts_left)
 
 @gemini_bp.route('/doubt-solver/ask', methods=['POST'])
-@login_required
+@check_access(feature='ai_doubts')
 def ask_gemini():
     """Handles the API request to the Gemini model."""
     if 'prompt' not in request.form:
@@ -55,9 +54,17 @@ def ask_gemini():
     prompt_text = request.form['prompt']
     image_file = request.files.get('image')
     
-    image_path_for_db = None
-    model_input = [prompt_text]
+    # --- ADDED: System instruction to define the AI's persona ---
+    system_instruction = (
+        "You are a helpful AI assistant named 'Prosno AI' on the 'Prosno' educational website. "
+        "When a user asks who you are, you must identify yourself as the AI from the Prosno website. "
+        "Your purpose is to help students with their academic questions in a friendly and encouraging manner."
+    )
+    
+    # --- MODIFIED: Prepend the system instruction to the user's prompt ---
+    model_input = [system_instruction, prompt_text]
 
+    image_path_for_db = None
     try:
         if image_file:
             image_path_for_db = upload_file(image_file)
@@ -101,7 +108,6 @@ def delete_chat(chat_id):
 
     try:
         if chat_to_delete.image_url:
-            # The image_url is stored relative to the static folder
             file_path = os.path.join(current_app.static_folder, chat_to_delete.image_url)
             if os.path.exists(file_path):
                 os.remove(file_path)
