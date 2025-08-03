@@ -2,7 +2,6 @@
 {% macro render_question_card(question, loop) %}
 <div id="question-container-{{ question.id }}" class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
     
-    {# --- MCQ Display Logic (unchanged) --- #}
     {% if question.question_type == 'MCQ' %}
         <div class="question-block p-4 bg-gray-700 rounded-lg relative" data-question-id="{{ question.id }}" data-correct-answer="{{ question.correct_answer }}">
             <div class="text-xl font-semibold mb-4 pr-20 text-gray-100 flex items-start">
@@ -36,15 +35,8 @@
                 {% endfor %}
             </div>
         </div>
-        <div id="mcq-solution-container-{{ question.id }}" class="mt-6 p-4 bg-gray-700 rounded-lg hidden">
-            <h3 class="text-lg font-semibold mb-2 text-gray-200">Solution:</h3>
-            {% if question.solution_image_url %}
-                <img src="{{ question.solution_image_url }}" alt="Solution Image" class="max-w-full h-auto mb-2 rounded-lg">
-            {% endif %}
-            <p class="text-gray-300">{{ question.solution | safe }}</p>
-        </div>
+        <div class="mcq-solution-container mt-6 p-4 bg-gray-700 rounded-lg hidden"></div>
 
-    {# --- CQ Display Logic (UPDATED) --- #}
     {% elif question.question_type == 'CQ' %}
         <div class="uddipak-block p-4 bg-gray-700 rounded-lg relative mb-4">
             <h3 class="text-lg font-semibold text-yellow-400 mb-2">Stimulus (উদ্দীপক)</h3>
@@ -67,12 +59,11 @@
                 {% for q_char in ['a', 'b', 'c', 'd'] %}
                     {% set question_text = question['question_' + q_char] %}
                     {% if question_text %}
-                    <div class="cq-item">
+                    <div class="cq-item" data-question-id="{{ question.id }}" data-sub-question="{{ q_char }}">
                         <button class="cq-question-toggle flex items-start w-full text-left p-3 rounded-lg bg-gray-700 hover:bg-gray-600">
                             <span class="font-bold text-lg text-blue-400 mr-3">{{ {'a':'ক', 'b':'খ', 'c':'গ', 'd':'ঘ'}[q_char] }}.</span>
                             <div class="flex-1 text-gray-200">
                                 {{ question_text | safe }}
-                                <!-- NEW: Display question image -->
                                 {% if question['question_' + q_char + '_image_url'] %}
                                     <img src="{{ question['question_' + q_char + '_image_url'] }}" alt="Sub-question image" class="max-w-md h-auto my-2 rounded-lg">
                                 {% endif %}
@@ -80,35 +71,23 @@
                             <svg class="w-6 h-6 text-gray-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
                         <div class="cq-answer hidden p-4 mt-2 bg-gray-900 border-l-4 border-blue-500 rounded-b-lg">
-                            <div class="text-gray-300">
-                                {{ question['answer_' + q_char] | safe }}
-                                <!-- NEW: Display answer image -->
-                                {% if question['answer_' + q_char + '_image_url'] %}
-                                    <img src="{{ question['answer_' + q_char + '_image_url'] }}" alt="Sub-answer image" class="max-w-md h-auto my-2 rounded-lg">
-                                {% endif %}
-                            </div>
                         </div>
                     </div>
                     {% endif %}
                 {% endfor %}
             {% else %}
-                <div class="cq-item">
+                <div class="cq-item" data-question-id="{{ question.id }}" data-sub-question="a">
                     <button class="cq-question-toggle flex items-center w-full text-left p-3 rounded-lg bg-gray-700 hover:bg-gray-600">
                         <span class="flex-1 text-gray-200 font-semibold">Click to see the answer</span>
                          <svg class="w-6 h-6 text-gray-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div class="cq-answer hidden p-4 mt-2 bg-gray-900 border-l-4 border-blue-500 rounded-b-lg">
-                         {% if question.solution_image_url %}
-                            <img src="{{ question.solution_image_url }}" alt="Solution Image" class="max-w-full h-auto mb-2 rounded-lg">
-                        {% endif %}
-                        <p class="text-gray-300">{{ question.solution | safe }}</p>
                     </div>
                 </div>
             {% endif %}
         </div>
     {% endif %}
 
-    <!-- Universal Action Buttons (unchanged) -->
     <div class="flex justify-end space-x-4 mt-6">
         <button class="save-question-btn bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors duration-200" data-question-id="{{ question.id }}">
             {% if question.is_saved %}Unsave Question{% else %}Save Question{% endif %}

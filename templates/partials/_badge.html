@@ -1,0 +1,10 @@
+{# templates/partials/_badge.html #}
+<div class="relative group">
+    <div class="w-16 h-16 p-2 bg-gray-700 rounded-full flex items-center justify-center">
+        {{ badge.icon_svg|safe }}
+    </div>
+    <div class="absolute bottom-full mb-2 w-48 bg-gray-900 text-white text-sm rounded-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        <p class="font-bold">{{ badge.name }}</p>
+        <p class="text-xs text-gray-400">{{ badge.description }}</p>
+    </div>
+</div>
