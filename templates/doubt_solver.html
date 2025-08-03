@@ -1,177 +1,240 @@
 {% extends "layout.html" %}
 
-{% block title %}Doubt Solver - Question Bank{% endblock %}
+{% block title %}AI Doubt Solver{% endblock %}
 
 {% block content %}
-<div class="flex flex-col lg:flex-row gap-8 h-[calc(100vh-10rem)]">
+<style>
+    /* Main container for the chat interface */
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 10rem); /* Full height minus some padding */
+        position: relative;
+    }
+
+    /* Scrollable area for chat messages */
+    #chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+
+    /* Chat bubble styling */
+    .chat-bubble {
+        max-width: 80%;
+        padding: 0.75rem 1rem;
+        border-radius: 1.25rem;
+        margin-bottom: 1rem;
+        word-wrap: break-word;
+    }
+
+    .user-bubble {
+        background-color: #2563eb; /* Blue */
+        color: white;
+        border-bottom-right-radius: 0.25rem;
+        align-self: flex-end;
+        margin-left: auto;
+    }
+
+    .ai-bubble {
+        background-color: #4b5563; /* Gray */
+        color: white;
+        border-bottom-left-radius: 0.25rem;
+        align-self: flex-start;
+        margin-right: auto;
+    }
     
-    <div class="lg:w-2/3 w-full bg-gray-800 rounded-lg p-6 flex flex-col border border-gray-700 order-first lg:order-last">
+    /* Input area styling */
+    .input-area {
+        border-top: 1px solid #374151; /* Gray-700 */
+        padding: 1rem;
+    }
+
+    /* History sidebar styling */
+    #history-sidebar {
+        transition: opacity 0.3s ease-in-out;
+    }
+
+</style>
+
+<div class="relative h-full">
+    <aside id="history-sidebar" class="absolute top-0 right-0 h-full w-80 bg-gray-900/90 backdrop-blur-sm border-l border-gray-700 z-20 flex flex-col p-4 opacity-0 pointer-events-none">
         <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl font-bold text-white">Ask Gemini AI</h1>
-            {% if not current_user.subscription_expiry or current_user.subscription_expiry < now() %}
-            <div class="text-right">
-                <span class="text-sm text-gray-400">Free Queries Left</span>
-                <p class="text-lg font-bold text-blue-400">{{ ai_doubts_left }}</p>
-            </div>
-            {% endif %}
+            <h2 class="text-xl font-bold text-white">Chat History</h2>
+            <button id="close-history-btn" class="p-2 text-gray-400 hover:text-white">&times;</button>
         </div>
-        
-        <div class="flex-grow flex flex-col">
-            <textarea id="prompt-input" class="w-full h-32 bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Type your question here..."></textarea>
-            
-            <div class="mt-4">
-                <label for="image-upload" class="inline-block bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg cursor-pointer">
-                    Upload Image
-                </label>
-                <input type="file" id="image-upload" class="hidden" accept="image/*">
-                <span id="file-chosen" class="text-gray-400 ml-3">No file chosen</span>
-            </div>
-            
-            <div id="image-preview-container" class="mt-4 hidden">
-                <div class="relative inline-block">
-                    <img id="image-preview" src="#" alt="Image Preview" class="max-h-40 rounded-lg">
-                    <button id="remove-image-btn" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold">&times;</button>
-                </div>
-            </div>
-
-            <button id="get-answer-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg mt-6">
-                Get Answer
-            </button>
-        </div>
-
-        <div class="mt-6 border-t border-gray-700 pt-6 overflow-y-auto">
-            <h3 class="text-xl font-semibold text-white mb-2">Answer:</h3>
-            <div id="answer-display" class="bg-gray-900 p-4 rounded-lg min-h-[100px] text-gray-300 whitespace-pre-wrap">
-                Your answer will appear here after you ask a question.
-            </div>
-        </div>
-    </div>
-
-    <!-- Chat History -->
-    <div class="lg:w-1/3 w-full bg-gray-800 rounded-lg p-4 flex flex-col border border-gray-700">
-        <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-600 pb-2">Chat History</h2>
         <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2">
             {% for chat in chat_history %}
-            <div class="history-item-container bg-gray-700 rounded-lg">
-                <button class="history-item-header w-full text-left p-3 transition-colors group flex justify-between items-center">
-                    <div class="flex-grow pr-2">
-                        <p class="text-gray-300 font-semibold truncate">{{ chat.prompt }}</p>
-                        <p class="text-gray-400 text-sm mt-1">{{ chat.timestamp.strftime('%b %d, %Y %I:%M %p') }}</p>
+            <div class="history-item group bg-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-600 flex space-x-3" 
+                 data-chat-id="{{ chat.id }}"
+                 data-prompt="{{ chat.prompt }}"
+                 data-response="{{ chat.response }}"
+                 data-image-url="{{ url_for('static', filename=chat.image_url) if chat.image_url else '' }}">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                        {{ current_user.name[0] | upper }}
                     </div>
-                    <div class="flex items-center space-x-2 flex-shrink-0">
-                        <div class="delete-chat-btn text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" data-chat-id="{{ chat.id }}">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
-                        </div>
-                        <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                </button>
-                <div class="history-item-body hidden p-4 mt-1 bg-gray-900 border-l-4 border-blue-500 rounded-b-lg">
-                    {% if chat.image_url %}
-                    <div>
-                        <h4 class="font-semibold text-gray-400 mb-2">Your Image:</h4>
-                        <img src="{{ url_for('static', filename=chat.image_url) }}" class="max-w-full rounded-lg border border-gray-600">
-                    </div>
-                    {% endif %}
-                    <h4 class="font-semibold text-gray-400 mt-4 mb-2">Gemini's Response:</h4>
-                    <p class="text-gray-300 whitespace-pre-wrap">{{ chat.response }}</p>
                 </div>
+                <div class="flex-grow overflow-hidden">
+                    <p class="text-gray-200 font-semibold truncate">{{ chat.prompt }}</p>
+                    <p class="text-gray-400 text-sm mt-1 truncate">{{ chat.response }}</p>
+                </div>
+                <button class="delete-chat-btn text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" data-chat-id="{{ chat.id }}">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
+                </button>
             </div>
             {% else %}
             <p id="no-history-placeholder" class="text-gray-500 text-center mt-8">Your past conversations will appear here.</p>
             {% endfor %}
         </div>
-    </div>
-</div>
+    </aside>
 
-<!-- Custom Confirmation Modal -->
-<div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[110] hidden">
-    <div class="bg-gray-900 p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-sm">
-        <h2 id="confirm-title" class="text-2xl font-bold text-gray-100 mb-4">Confirm Action</h2>
-        <p id="confirm-message" class="text-gray-300 mb-6">Are you sure?</p>
-        <div class="flex justify-end space-x-4">
-            <button id="confirm-cancel-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
-            <button id="confirm-ok-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Confirm</button>
+    <div class="chat-container">
+        
+        <div class="flex justify-between items-center p-4 border-b border-gray-700">
+            <button id="new-chat-btn" class="p-2 text-gray-400 hover:text-white" title="New Chat">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+            </button>
+            <h1 class="text-xl font-bold text-white">AI Doubt Solver</h1>
+            <button id="open-history-btn" class="p-2 text-gray-400 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+        </div>
+
+        <div id="chat-messages" class="flex flex-col space-y-4">
+            <div id="welcome-message" class="text-center text-gray-500 my-8">
+                <h2 class="text-3xl font-bold">Hello, {{ current_user.name }}!</h2>
+                <p>How can I help you with your studies today?</p>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div id="image-preview-container" class="mb-2 px-2"></div>
+
+            <div class="flex items-center bg-gray-800 rounded-full p-2">
+                <button id="add-image-btn" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+                <input type="file" id="image-upload" class="hidden" accept="image/*">
+                
+                <textarea id="prompt-input" class="flex-grow bg-transparent text-white focus:outline-none resize-none px-4" rows="1" placeholder="Ask anything..."></textarea>
+                
+                <button id="send-btn" class="p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700 disabled:bg-gray-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Custom Confirmation Modal Logic ---
-    const confirmationModal = document.getElementById('confirmationModal');
-    const confirmTitle = document.getElementById('confirm-title');
-    const confirmMessage = document.getElementById('confirm-message');
-    const confirmOkBtn = document.getElementById('confirm-ok-btn');
-    const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
-    let confirmCallback = null;
-
-    function showConfirmation(title, message, onConfirm) {
-        confirmTitle.textContent = title;
-        confirmMessage.textContent = message;
-        confirmCallback = onConfirm;
-        confirmationModal.classList.remove('hidden');
-    }
-
-    confirmCancelBtn.addEventListener('click', () => {
-        confirmationModal.classList.add('hidden');
-        confirmCallback = null;
-    });
-
-    confirmOkBtn.addEventListener('click', () => {
-        if (confirmCallback) {
-            confirmCallback();
-        }
-        confirmationModal.classList.add('hidden');
-        confirmCallback = null;
-    });
-
-    // --- Main Page Logic ---
+    const historySidebar = document.getElementById('history-sidebar');
+    const openHistoryBtn = document.getElementById('open-history-btn');
+    const closeHistoryBtn = document.getElementById('close-history-btn');
+    const newChatBtn = document.getElementById('new-chat-btn'); // NEW
+    const chatMessages = document.getElementById('chat-messages');
     const promptInput = document.getElementById('prompt-input');
+    const sendBtn = document.getElementById('send-btn');
+    const addImageBtn = document.getElementById('add-image-btn');
     const imageUpload = document.getElementById('image-upload');
-    const fileChosen = document.getElementById('file-chosen');
     const imagePreviewContainer = document.getElementById('image-preview-container');
-    const imagePreview = document.getElementById('image-preview');
-    const removeImageBtn = document.getElementById('remove-image-btn');
-    const getAnswerBtn = document.getElementById('get-answer-btn');
-    const answerDisplay = document.getElementById('answer-display');
     const historyList = document.getElementById('history-list');
-    const noHistoryPlaceholder = document.getElementById('no-history-placeholder');
+    const welcomeMessage = document.getElementById('welcome-message');
 
+    // --- History Sidebar Logic ---
+    openHistoryBtn.addEventListener('click', () => {
+        historySidebar.classList.remove('opacity-0', 'pointer-events-none');
+    });
+
+    const closeHistory = () => {
+        historySidebar.classList.add('opacity-0', 'pointer-events-none');
+    };
+    closeHistoryBtn.addEventListener('click', closeHistory);
+
+    // NEW: Close history when clicking outside of it
+    document.addEventListener('click', (event) => {
+        const isHistoryOpen = !historySidebar.classList.contains('opacity-0');
+        const clickedOutside = !historySidebar.contains(event.target);
+        // Ensure the click is not on the button that opens the history
+        const clickedOnOpenBtn = openHistoryBtn.contains(event.target) || openHistoryBtn === event.target;
+
+        if (isHistoryOpen && clickedOutside && !clickedOnOpenBtn) {
+            closeHistory();
+        }
+    });
+
+    // NEW: New Chat button functionality
+    newChatBtn.addEventListener('click', () => {
+        location.reload();
+    });
+
+    // --- Auto-resize Textarea ---
+    promptInput.addEventListener('input', () => {
+        promptInput.style.height = 'auto';
+        promptInput.style.height = (promptInput.scrollHeight) + 'px';
+    });
+
+    // --- Image Handling ---
+    addImageBtn.addEventListener('click', () => imageUpload.click());
     imageUpload.addEventListener('change', () => {
-        const file = imageUpload.files[0];
-        if (file) {
-            fileChosen.textContent = file.name;
+        if (imageUpload.files && imageUpload.files[0]) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                imagePreview.src = e.target.result;
-                imagePreviewContainer.classList.remove('hidden');
+                imagePreviewContainer.innerHTML = `
+                    <div class="relative inline-block">
+                        <img src="${e.target.result}" class="max-h-24 rounded-lg">
+                        <button id="remove-image-btn" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">&times;</button>
+                    </div>`;
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(imageUpload.files[0]);
         }
     });
 
-    removeImageBtn.addEventListener('click', () => {
-        imageUpload.value = '';
-        fileChosen.textContent = 'No file chosen';
-        imagePreviewContainer.classList.add('hidden');
-        imagePreview.src = '#';
+    imagePreviewContainer.addEventListener('click', (e) => {
+        if (e.target.id === 'remove-image-btn') {
+            imageUpload.value = '';
+            imagePreviewContainer.innerHTML = '';
+        }
     });
 
-    getAnswerBtn.addEventListener('click', async () => {
+    // --- Chat Logic ---
+    const addMessage = (type, content) => {
+        if (welcomeMessage) welcomeMessage.style.display = 'none';
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${type}-bubble`;
+        bubble.innerHTML = content;
+        chatMessages.appendChild(bubble);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    const handleSend = async () => {
         const promptText = promptInput.value.trim();
         const imageFile = imageUpload.files[0];
-        if (!promptText) { return; }
 
-        getAnswerBtn.disabled = true;
-        getAnswerBtn.textContent = 'Thinking...';
-        answerDisplay.innerHTML = `<p class="text-gray-400">Waiting for response from Gemini...</p>`;
+        if (!promptText && !imageFile) return;
+
+        sendBtn.disabled = true;
+        
+        let userMessageHtml = `<p>${promptText}</p>`;
+        if (imageFile) {
+            const previewSrc = imagePreviewContainer.querySelector('img').src;
+            userMessageHtml += `<img src="${previewSrc}" class="max-w-xs rounded-lg mt-2">`;
+        }
+        addMessage('user', userMessageHtml);
+
+        promptInput.value = '';
+        promptInput.style.height = 'auto';
+        imageUpload.value = '';
+        imagePreviewContainer.innerHTML = '';
+
+        addMessage('ai', '<p class="animate-pulse">Thinking...</p>');
 
         const formData = new FormData();
         formData.append('prompt', promptText);
-        if (imageFile) { formData.append('image', imageFile); }
+        if (imageFile) formData.append('image', imageFile);
 
         try {
-            // --- MODIFIED: Added 'X-Requested-With' header ---
             const response = await fetch('/doubt-solver/ask', { 
                 method: 'POST', 
                 body: formData,
@@ -179,84 +242,102 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
 
-            // --- MODIFIED: Check for limit_reached status ---
+            chatMessages.removeChild(chatMessages.lastChild);
+
             if (data.status === 'limit_reached') {
                 window.location.href = data.redirect_url;
                 return;
             }
 
             if (response.ok) {
-                answerDisplay.innerHTML = `<p class="text-gray-300 whitespace-pre-wrap">${data.response}</p>`;
-                if (noHistoryPlaceholder) noHistoryPlaceholder.remove();
-                
-                const newHistoryItemHtml = `
-                    <button class="history-item-header w-full text-left p-3 transition-colors group flex justify-between items-center">
-                        <div class="flex-grow pr-2">
-                            <p class="text-gray-300 font-semibold truncate">${data.prompt}</p>
-                            <p class="text-gray-400 text-sm mt-1">${data.timestamp}</p>
-                        </div>
-                        <div class="flex items-center space-x-2 flex-shrink-0">
-                            <div class="delete-chat-btn text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" data-chat-id="${data.chat_id}">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
-                            </div>
-                            <svg class="w-5 h-5 text-gray-400 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </button>
-                    <div class="history-item-body hidden p-4 mt-1 bg-gray-900 border-l-4 border-blue-500 rounded-b-lg">
-                        ${data.image_url ? `
-                        <div>
-                            <h4 class="font-semibold text-gray-400 mb-2">Your Image:</h4>
-                            <img src="${data.image_url}" class="max-w-full rounded-lg border border-gray-600">
-                        </div>` : ''}
-                        <h4 class="font-semibold text-gray-400 mt-4 mb-2">Gemini's Response:</h4>
-                        <p class="text-gray-300 whitespace-pre-wrap">${data.response}</p>
-                    </div>
-                `;
-                const container = document.createElement('div');
-                container.className = 'history-item-container bg-gray-700 rounded-lg';
-                container.innerHTML = newHistoryItemHtml;
-                historyList.prepend(container);
-                
-                promptInput.value = '';
-                removeImageBtn.click();
+                addMessage('ai', `<p>${data.response}</p>`);
+                addHistoryItem(data);
             } else {
-                answerDisplay.innerHTML = `<p class="text-red-400">Error: ${data.error || 'Something went wrong.'}</p>`;
+                addMessage('ai', `<p class="text-red-400">Error: ${data.error || 'Something went wrong.'}</p>`);
             }
         } catch (error) {
-            answerDisplay.innerHTML = `<p class="text-red-400">An unexpected error occurred.</p>`;
-            console.error(error);
+            chatMessages.removeChild(chatMessages.lastChild);
+            addMessage('ai', `<p class="text-red-400">An unexpected network error occurred.</p>`);
         } finally {
-            getAnswerBtn.disabled = false;
-            getAnswerBtn.textContent = 'Get Answer';
+            sendBtn.disabled = false;
         }
-    });
+    };
+
+    // --- History Interaction Logic ---
+    const addHistoryItem = (data) => {
+        const noHistoryPlaceholder = document.getElementById('no-history-placeholder');
+        if(noHistoryPlaceholder) noHistoryPlaceholder.remove();
+
+        const newHistoryItem = document.createElement('div');
+        newHistoryItem.className = 'history-item group bg-gray-700 rounded-lg p-3 cursor-pointer hover:bg-gray-600 flex space-x-3';
+        newHistoryItem.dataset.chatId = data.chat_id;
+        newHistoryItem.dataset.prompt = data.prompt;
+        newHistoryItem.dataset.response = data.response;
+        newHistoryItem.dataset.imageUrl = data.image_url || '';
+        
+        const responsePreview = data.response.substring(0, 50) + (data.response.length > 50 ? '...' : '');
+
+        newHistoryItem.innerHTML = `
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                    {{ current_user.name[0] | upper }}
+                </div>
+            </div>
+            <div class="flex-grow overflow-hidden">
+                <p class="text-gray-200 font-semibold truncate">${data.prompt}</p>
+                <p class="text-gray-400 text-sm mt-1 truncate">${responsePreview}</p>
+            </div>
+            <button class="delete-chat-btn text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" data-chat-id="${data.chat_id}">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
+            </button>
+        `;
+        historyList.prepend(newHistoryItem);
+    };
+
+    const loadChatFromHistory = (element) => {
+        chatMessages.innerHTML = ''; // Clear current chat
+        
+        let userMessageHtml = `<p>${element.dataset.prompt}</p>`;
+        if (element.dataset.imageUrl) {
+            userMessageHtml += `<img src="${element.dataset.imageUrl}" class="max-w-xs rounded-lg mt-2">`;
+        }
+        addMessage('user', userMessageHtml);
+        addMessage('ai', `<p>${element.dataset.response}</p>`);
+        
+        closeHistory();
+    };
 
     historyList.addEventListener('click', async (e) => {
-        const header = e.target.closest('.history-item-header');
         const deleteBtn = e.target.closest('.delete-chat-btn');
-        const container = e.target.closest('.history-item-container');
+        const historyItem = e.target.closest('.history-item');
 
         if (deleteBtn) {
             e.stopPropagation();
             const chatId = deleteBtn.dataset.chatId;
-            showConfirmation('Delete Chat', 'Are you sure you want to permanently delete this conversation?', async () => {
+            // Using confirm for simplicity, can be replaced with a custom modal
+            if (confirm('Are you sure you want to delete this chat?')) {
                 try {
                     const response = await fetch(`/doubt-solver/delete/${chatId}`, { method: 'DELETE' });
                     const data = await response.json();
                     if (data.success) {
-                        container.remove();
+                        historyItem.remove();
                     } else {
                         alert(`Error: ${data.message}`);
                     }
                 } catch (err) {
                     alert('An error occurred.');
                 }
-            });
-        } else if (header) {
-            const body = header.nextElementSibling;
-            const icon = header.querySelector('svg:last-child');
-            body.classList.toggle('hidden');
-            icon.classList.toggle('rotate-180');
+            }
+        } else if (historyItem) {
+            loadChatFromHistory(historyItem);
+        }
+    });
+
+    sendBtn.addEventListener('click', handleSend);
+    promptInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
         }
     });
 });
