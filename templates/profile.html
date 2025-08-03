@@ -76,6 +76,7 @@
                         </div>
                     </div>
 
+                    <!-- --- ADDED: Stats --- -->
                     <div class="mb-6">
                         <label for="profile_pic" class="block text-gray-300 text-sm font-bold mb-2">Update Profile Picture</label>
                         <input type="file" id="profile_pic" name="profile_pic" accept="image/*"
@@ -109,6 +110,18 @@
                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">Save Changes</button>
                     </div>
                 </form>
+
+                <!-- --- ADDED: Badges Section --- -->
+                <div class="mt-8">
+                    <h2 class="text-2xl font-bold text-gray-100 mb-4">Achievements</h2>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 flex flex-wrap gap-4">
+                        {% for badge in current_user.badges %}
+                            {{ render_badge(badge) }}
+                        {% else %}
+                            <p class="text-gray-400">No achievements earned yet. Start practicing to earn badges!</p>
+                        {% endfor %}
+                    </div>
+                </div>
 
                 <div class="mt-8 border-t border-red-500/30 pt-6">
                      <h4 class="font-semibold text-red-400 mb-2">Danger Zone</h4>

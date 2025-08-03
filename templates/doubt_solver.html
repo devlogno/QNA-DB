@@ -3,12 +3,18 @@
 {% block title %}Doubt Solver - Question Bank{% endblock %}
 
 {% block content %}
-<!-- Main layout is now flex-based for responsiveness -->
 <div class="flex flex-col lg:flex-row gap-8 h-[calc(100vh-10rem)]">
     
-    <!-- Main Interface (Right Column on Desktop, First on Mobile) -->
     <div class="lg:w-2/3 w-full bg-gray-800 rounded-lg p-6 flex flex-col border border-gray-700 order-first lg:order-last">
-        <h1 class="text-2xl font-bold text-white mb-4">Ask Gemini AI</h1>
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold text-white">Ask Gemini AI</h1>
+            {% if not current_user.subscription_expiry or current_user.subscription_expiry < now() %}
+            <div class="text-right">
+                <span class="text-sm text-gray-400">Free Queries Left</span>
+                <p class="text-lg font-bold text-blue-400">{{ ai_doubts_left }}</p>
+            </div>
+            {% endif %}
+        </div>
         
         <div class="flex-grow flex flex-col">
             <textarea id="prompt-input" class="w-full h-32 bg-gray-700 text-white p-3 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Type your question here..."></textarea>
@@ -41,7 +47,7 @@
         </div>
     </div>
 
-    <!-- Chat History (Left Column on Desktop, Second on Mobile) -->
+    <!-- Chat History -->
     <div class="lg:w-1/3 w-full bg-gray-800 rounded-lg p-4 flex flex-col border border-gray-700">
         <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-600 pb-2">Chat History</h2>
         <div id="history-list" class="flex-grow overflow-y-auto space-y-2 pr-2">
@@ -77,7 +83,7 @@
     </div>
 </div>
 
-<!-- NEW: Custom Confirmation Modal -->
+<!-- Custom Confirmation Modal -->
 <div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[110] hidden">
     <div class="bg-gray-900 p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-sm">
         <h2 id="confirm-title" class="text-2xl font-bold text-gray-100 mb-4">Confirm Action</h2>
@@ -91,7 +97,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- NEW: Custom Confirmation Modal Logic ---
+    // --- Custom Confirmation Modal Logic ---
     const confirmationModal = document.getElementById('confirmationModal');
     const confirmTitle = document.getElementById('confirm-title');
     const confirmMessage = document.getElementById('confirm-message');
@@ -165,8 +171,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (imageFile) { formData.append('image', imageFile); }
 
         try {
-            const response = await fetch('/doubt-solver/ask', { method: 'POST', body: formData });
+            // --- MODIFIED: Added 'X-Requested-With' header ---
+            const response = await fetch('/doubt-solver/ask', { 
+                method: 'POST', 
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             const data = await response.json();
+
+            // --- MODIFIED: Check for limit_reached status ---
+            if (data.status === 'limit_reached') {
+                window.location.href = data.redirect_url;
+                return;
+            }
 
             if (response.ok) {
                 answerDisplay.innerHTML = `<p class="text-gray-300 whitespace-pre-wrap">${data.response}</p>`;
@@ -203,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 promptInput.value = '';
                 removeImageBtn.click();
             } else {
-                answerDisplay.innerHTML = `<p class="text-red-400">Error: ${data.error}</p>`;
+                answerDisplay.innerHTML = `<p class="text-red-400">Error: ${data.error || 'Something went wrong.'}</p>`;
             }
         } catch (error) {
             answerDisplay.innerHTML = `<p class="text-red-400">An unexpected error occurred.</p>`;

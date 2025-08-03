@@ -1,0 +1,104 @@
+{% extends "layout.html" %}
+
+{% block title %}Create a Quiz{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-gray-100 mb-6">Create a Custom Quiz</h1>
+
+<div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-lg shadow-md border border-gray-700">
+    <form method="POST" action="{{ url_for('quiz.create_quiz') }}">
+        <!-- Category Selection -->
+        <div class="space-y-4 mb-6">
+            <div>
+                <label for="subject_id" class="block text-gray-300 text-sm font-bold mb-2">Subject</label>
+                <select id="subject_id" name="subject_id" required class="category-select w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" data-child="chapters">
+                    <option value="">-- Select a Subject --</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="chapter_id" class="block text-gray-300 text-sm font-bold mb-2">Chapter (Optional)</label>
+                <select id="chapter_id" name="chapter_id" class="category-select w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" data-child="topics"></select>
+            </div>
+            <div>
+                <label for="topic_id" class="block text-gray-300 text-sm font-bold mb-2">Topic (Optional)</label>
+                <select id="topic_id" name="topic_id" class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600"></select>
+            </div>
+        </div>
+
+        <!-- Quiz Settings -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label for="question_type" class="block text-gray-300 text-sm font-bold mb-2">Question Type</label>
+                <select id="question_type" name="question_type" required class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600">
+                    <option value="MCQ">MCQ</option>
+                    <option value="CQ">CQ (Creative Question)</option>
+                </select>
+            </div>
+            <div>
+                <label for="num_questions" class="block text-gray-300 text-sm font-bold mb-2">Number of Questions</label>
+                <input type="number" id="num_questions" name="num_questions" min="1" max="50" value="10" required class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600">
+            </div>
+            <div>
+                <label for="time_limit" class="block text-gray-300 text-sm font-bold mb-2">Time Limit (Minutes)</label>
+                <input type="number" id="time_limit" name="time_limit" min="1" max="180" value="10" required class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600">
+            </div>
+            <div>
+                <label for="complexity" class="block text-gray-300 text-sm font-bold mb-2">Max Complexity: <span id="complexity_value">10</span></label>
+                <input type="range" id="complexity" name="complexity" min="1" max="10" value="10" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg">
+            Start Quiz
+        </button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Complexity slider value display
+    const complexitySlider = document.getElementById('complexity');
+    const complexityValueSpan = document.getElementById('complexity_value');
+    complexitySlider.addEventListener('input', () => {
+        complexityValueSpan.textContent = complexitySlider.value;
+    });
+
+    // Cascading dropdowns
+    async function fetchChildren(category, parentId) {
+        if (!parentId) return [];
+        const response = await fetch(`/api/categories/${category}?parent_id=${parentId}`);
+        if (!response.ok) return [];
+        return response.json();
+    }
+
+    function populateSelect(selectElement, items, placeholder) {
+        selectElement.innerHTML = `<option value="">-- ${placeholder} --</option>`;
+        if (items) {
+            items.forEach(item => {
+                const option = new Option(item.name, item.id);
+                selectElement.add(option);
+            });
+        }
+    }
+
+    document.querySelectorAll('.category-select').forEach(select => {
+        select.addEventListener('change', async (event) => {
+            const parentSelect = event.target;
+            const parentId = parentSelect.value;
+            const childCategoryPlural = parentSelect.dataset.child;
+
+            if (parentId && childCategoryPlural) {
+                const children = await fetchChildren(childCategoryPlural, parentId);
+                const childSelect = document.getElementById(`${childCategoryPlural.slice(0, -1)}_id`);
+                if (childSelect) {
+                    populateSelect(childSelect, children, `All ${childCategoryPlural}`);
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
