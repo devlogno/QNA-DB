@@ -9,9 +9,17 @@ class DoubtPost(db.Model):
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
     
+    # --- NEW: Add foreign keys for categorization ---
+    level_id = db.Column(db.Integer, db.ForeignKey('level.id'), nullable=True)
+    stream_id = db.Column(db.Integer, db.ForeignKey('stream.id'), nullable=True)
+
     author = db.relationship("User", backref="doubt_posts")
     answers = db.relationship("DoubtAnswer", backref="post", lazy='dynamic', cascade="all, delete-orphan")
     images = db.relationship("PostImage", backref="post", lazy='dynamic', cascade="all, delete-orphan")
+    
+    # --- NEW: Add relationships to category models ---
+    level = db.relationship('Level', backref='doubt_posts')
+    stream = db.relationship('Stream', backref='doubt_posts')
 
 class DoubtAnswer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
