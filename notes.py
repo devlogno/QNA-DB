@@ -45,25 +45,30 @@ def view_notes():
     is_premium = current_user.is_admin or (current_user.subscription_expiry and current_user.subscription_expiry > datetime.datetime.utcnow())
 
     if request.method == 'POST':
-        # Manually perform the access check for creating a new note
         if not is_premium and current_user.notes_left <= 0:
             flash('You have reached your limit for creating new notes. Please upgrade for unlimited notes.', 'warning')
             return redirect(url_for('payments.pricing_page'))
 
-        title = request.form.get('title')
         content = request.form.get('content')
         image_files = request.files.getlist('images')
 
-        # Storage limit check
         max_storage = PREMIUM_USER_STORAGE_LIMIT_BYTES if is_premium else FREE_USER_STORAGE_LIMIT_BYTES
         new_files_size = sum(get_file_size(f) for f in image_files if f.filename)
         if current_user.note_storage_used_bytes + new_files_size > max_storage:
             flash(f'Uploading these images would exceed your storage limit of {max_storage / (1024*1024):.0f} MB.', 'danger')
             return redirect(url_for('notes.view_notes'))
 
-        if not title or not content:
-            flash('Title and content are required!', 'danger')
+        if not content:
+            flash('Content is required!', 'danger')
         else:
+            # Auto-generate title from the first 5 words of content
+            title_words = content.split()
+            title = ' '.join(title_words[:5])
+            if len(title_words) > 5:
+                title += '...'
+            if not title:
+                title = "Untitled Note"
+
             new_note = Note(
                 title=title, content=content, author=current_user,
                 level_id=request.form.get('level_id') or None,
@@ -200,12 +205,19 @@ def edit_note(note_id):
         flash(f'Uploading these images would exceed your storage limit of {max_storage / (1024*1024):.0f} MB.', 'danger')
         return redirect(url_for('notes.view_notes'))
 
-    title = request.form.get('title')
     content = request.form.get('content')
     
-    if not title or not content:
-        flash('Title and content cannot be empty!', 'danger')
+    if not content:
+        flash('Content cannot be empty!', 'danger')
     else:
+        # Auto-generate title from the first 5 words of content
+        title_words = content.split()
+        title = ' '.join(title_words[:5])
+        if len(title_words) > 5:
+            title += '...'
+        if not title:
+            title = "Untitled Note"
+
         note.title = title
         note.content = content
         note.level_id = request.form.get('level_id') or None
