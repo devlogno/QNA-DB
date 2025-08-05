@@ -27,7 +27,7 @@
 </style>
 
 <h1 class="text-3xl font-bold text-gray-100 mb-6">Manage Question Categories</h1>
-<p class="text-gray-400 mb-6">Click on an item in a list to load its children in the next column. Use the buttons to add, edit, or delete items.</p>
+<p class="text-gray-400 mb-6">Click on an item in a list to load its children in the next column. The ID for each item is displayed for easy reference when creating JSON files.</p>
 
 <div class="flex space-x-4 overflow-x-auto pb-4 custom-scrollbar">
     <!-- Levels Column -->
@@ -56,7 +56,6 @@
         <ul id="boards-list" class="space-y-2"></ul>
         <div class="mt-4">
             <input type="text" id="new-board-name" placeholder="New Board Name" class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600">
-            <!-- ADDED: Tag input field -->
             <input type="text" id="new-board-tag" placeholder="Tag (e.g., DB)" class="w-full mt-2 bg-gray-700 text-white p-2 rounded-lg border border-gray-600">
             <button onclick="addItem('boards')" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Add Board</button>
         </div>
@@ -141,13 +140,12 @@
             li.className = 'category-item flex justify-between items-center p-2 rounded-lg bg-gray-900 hover:bg-gray-700 border-l-4 border-transparent transition-colors duration-200';
             li.dataset.id = item.id;
 
-            // UPDATED: Display tag for boards
-            let nameHtml = `<span class="flex-grow">${item.name}</span>`;
+            // --- MODIFIED: Display ID next to the name ---
+            let nameHtml = `<span class="flex-grow"><span class="text-xs text-cyan-400 font-mono mr-2">[ID: ${item.id}]</span>${item.name}</span>`;
             if (category === 'boards' && item.tag) {
-                nameHtml = `<span class="flex-grow">${item.name} <span class="text-xs text-gray-400">[${item.tag}]</span></span>`;
+                nameHtml = `<span class="flex-grow"><span class="text-xs text-cyan-400 font-mono mr-2">[ID: ${item.id}]</span>${item.name} <span class="text-xs text-gray-400">[${item.tag}]</span></span>`;
             }
 
-            // UPDATED: Pass tag to editItem function for boards
             const editTagParam = category === 'boards' ? `, '${item.tag || ''}'` : '';
             const editCall = `editItem('${category}', ${item.id}, '${item.name}'${editTagParam})`;
 
@@ -215,7 +213,6 @@
         }
 
         const body = { name, parent_id: parentId };
-        // UPDATED: Add tag to body for boards
         if (category === 'boards') {
             const tagInput = document.getElementById('new-board-tag');
             body.tag = tagInput.value.trim();
@@ -233,15 +230,13 @@
     async function editItem(category, itemId, currentName, currentTag = '') {
         const newName = prompt(`Enter new name for "${currentName}":`, currentName);
         if (!newName || newName.trim() === '' || newName.trim() === currentName) {
-             // If name is unchanged, check if we need to update the tag
              if (category !== 'boards') return;
         }
 
         const body = { name: newName.trim() };
-        // UPDATED: Prompt for tag if editing a board
         if (category === 'boards') {
             const newTag = prompt(`Enter new tag for "${newName || currentName}" (current: ${currentTag}):`, currentTag);
-            if (newTag === null) return; // User cancelled
+            if (newTag === null) return;
             body.tag = newTag.trim();
         }
 

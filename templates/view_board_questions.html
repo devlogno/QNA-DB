@@ -17,11 +17,11 @@
     {{ question_type }} Questions for {{ board.name }}
 </h1>
 
-<div class="space-y-8">
+<div id="questions-container" class="space-y-8">
     {% if questions %}
         {% for question in questions %}
-            {# CORRECTED: Calling the macro #}
-            {{ render_question_card(question, loop) }}
+            {# --- MODIFIED: Pass the initial loop_offset of 0 --- #}
+            {{ render_question_card(question, loop, is_premium, 0) }}
         {% endfor %}
     {% else %}
         <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 text-center">
@@ -31,4 +31,61 @@
     {% endif %}
 </div>
 
+<div id="loading-spinner" class="text-center py-8 {% if not pagination.has_next %}hidden{% endif %}">
+    <svg class="animate-spin h-8 w-8 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <p class="text-gray-400 mt-2">Loading more questions...</p>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let currentPage = {{ pagination.page }};
+    let hasNextPage = {{ pagination.has_next | tojson }};
+    let isLoading = false;
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const questionsContainer = document.getElementById('questions-container');
+    const mainContent = document.querySelector('main');
+
+    const loadMoreQuestions = async () => {
+        if (!hasNextPage || isLoading) return;
+
+        isLoading = true;
+        currentPage++;
+        loadingSpinner.classList.remove('hidden');
+
+        try {
+            const response = await fetch(`/api/more_questions/{{ board.id }}/{{ question_type }}?page=${currentPage}`);
+            const data = await response.json();
+
+            if (data.html) {
+                questionsContainer.insertAdjacentHTML('beforeend', data.html);
+                if (window.MathJax) {
+                    window.MathJax.typesetPromise();
+                }
+            }
+            hasNextPage = data.has_next;
+        } catch (error) {
+            console.error('Error loading more questions:', error);
+        } finally {
+            isLoading = false;
+            if (!hasNextPage) {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+    };
+
+    const handleScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = mainContent;
+        if (scrollTop + clientHeight >= scrollHeight - 150) { 
+            loadMoreQuestions();
+        }
+    };
+
+    if (mainContent) {
+        mainContent.addEventListener('scroll', handleScroll);
+    }
+});
+</script>
 {% endblock %}

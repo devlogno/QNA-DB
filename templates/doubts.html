@@ -1,4 +1,3 @@
-
 {% extends "layout.html" %}
 
 {% block title %}Community Doubts{% endblock %}
@@ -16,7 +15,6 @@
         position: relative;
         width: 100px;
         height: 100px;
-        margin-top: 0.5rem;
     }
     .preview-image {
         width: 100%;
@@ -25,21 +23,15 @@
         border-radius: 0.5rem;
     }
     .remove-image-btn {
-        position: absolute;
-        top: 0.25rem;
-        right: 0.25rem;
-        background-color: rgba(0, 0, 0, 0.7);
-        color: white;
-        border: none;
-        border-radius: 9999px;
-        width: 1.5rem;
-        height: 1.5rem;
-        font-weight: bold;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: absolute; top: 0.25rem; right: 0.25rem; background-color: rgba(0, 0, 0, 0.7);
+        color: white; border: none; border-radius: 9999px; width: 1.5rem; height: 1.5rem;
+        font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
+    .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 10px; }
+    #lightbox-img.is-pannable { cursor: grab; }
+    #lightbox-img.is-panning { cursor: grabbing; }
 </style>
 
 <div class="flex justify-between items-center mb-6">
@@ -49,48 +41,70 @@
     </button>
 </div>
 
+<!-- Form for asking a new doubt (initially hidden) -->
+<div id="new-doubt-container" class="hidden mb-6">
+    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+        <h2 class="text-xl font-bold text-gray-100 mb-4">Ask a new doubt</h2>
+        <form id="askDoubtForm">
+            <textarea id="doubt-content" name="content" rows="4" required class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600 mb-2" placeholder="Describe your doubt in detail..."></textarea>
+            <div id="doubt-image-previews" class="flex flex-wrap gap-2 mb-4"></div>
+            <div class="flex justify-between items-center">
+                <label for="doubt-images" class="cursor-pointer text-gray-400 hover:text-white p-2 bg-gray-700 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </label>
+                <input type="file" id="doubt-images" name="images" accept="image/*" multiple class="hidden">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Post Doubt</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <div id="doubt-feed" class="space-y-6"
      data-current-user-id="{{ current_user.id }}"
+     data-current-user-pic="{{ current_user.profile_pic_url }}"
      data-is-admin="{{ current_user.is_admin | tojson }}">
     {% for post in posts %}
     <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700" id="post-{{ post.id }}">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
-                <a href="{{ url_for('user.public_profile', public_id=post.author.public_id) }}">
-                    <img src="{{ post.author.profile_pic_url }}" class="w-12 h-12 rounded-full mr-4">
-                </a>
+                <a href="{{ url_for('user.public_profile', public_id=post.author.public_id) }}"><img src="{{ post.author.profile_pic_url }}" class="w-12 h-12 rounded-full mr-4"></a>
                 <div>
-                    <a href="{{ url_for('user.public_profile', public_id=post.author.public_id) }}" class="hover:underline">
-                        <h2 class="text-xl font-bold text-white">{{ post.title }}</h2>
-                    </a>
-                    <p class="text-sm text-gray-400">Asked by {{ post.author.name }} on {{ post.timestamp.strftime('%b %d, %Y') }}</p>
+                    <a href="{{ url_for('user.public_profile', public_id=post.author.public_id) }}" class="hover:underline"><h2 class="text-xl font-bold text-white">{{ post.author.name }}</h2></a>
+                    <p class="text-sm text-gray-400">on {{ post.timestamp.strftime('%b %d, %Y') }}</p>
                 </div>
             </div>
             {% if current_user.id == post.user_id or current_user.is_admin %}
-            <button class="delete-post-btn text-gray-500 hover:text-red-500" data-post-id="{{ post.id }}">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
-            </button>
+            <button class="delete-post-btn text-gray-500 hover:text-red-500" data-post-id="{{ post.id }}"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg></button>
             {% endif %}
         </div>
         <div class="text-gray-300 mt-4 prose prose-invert max-w-none">
             <p class="whitespace-pre-wrap">{{ post.content }}</p>
-            <div class="flex flex-col gap-2 mt-4">
-                {% for image in post.images %}
-                    <img src="{{ image.image_url }}" class="max-w-md rounded-lg">
-                {% endfor %}
-            </div>
+            {% set images = post.images.all() %}
+            {% if images %}
+                <div class="flex overflow-x-auto space-x-4 py-2 mt-4 custom-scrollbar">
+                    {% for image in images %}
+                    <img src="{{ image.image_url }}" alt="Doubt Image" class="h-48 w-auto object-cover rounded-lg flex-shrink-0 cursor-pointer note-image-clickable">
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
         <div class="mt-6 border-t border-gray-700 pt-4">
-            <h3 class="text-lg font-semibold text-gray-200 mb-2">Answers</h3>
+            <h3 class="text-lg font-semibold text-gray-200 mb-4">Answers</h3>
             <div class="answers-container space-y-4">
                 {% for answer in post.answers.filter_by(parent_id=None).order_by('timestamp') %}
                     {% include 'partials/_answer.html' %}
                 {% endfor %}
             </div>
-            <div class="mt-4">
-                <button class="answer-btn bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg w-full" data-post-id="{{ post.id }}">
-                    Write an Answer
-                </button>
+            <!-- Direct Answer Input -->
+            <div class="answer-input-container mt-4 flex items-start space-x-3">
+                <img src="{{ current_user.profile_pic_url }}" class="w-10 h-10 rounded-full">
+                <div class="flex-grow flex items-center space-x-2">
+                    <textarea class="answer-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your answer..." data-post-id="{{ post.id }}"></textarea>
+                    <button class="send-answer-btn p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700" data-post-id="{{ post.id }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -99,31 +113,13 @@
     {% endfor %}
 </div>
 
-<div id="form-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-    <div class="bg-gray-900 p-8 rounded-lg shadow-xl w-full max-w-2xl border border-gray-700">
-        <h2 id="modal-title" class="text-2xl font-bold text-white mb-4"></h2>
-        <form id="modal-form">
-            <input type="hidden" id="form-post-id">
-            <input type="hidden" id="form-parent-id">
-            <div id="title-container" class="mb-4">
-                <label for="form-title" class="block text-gray-300 text-sm font-bold mb-2">Title</label>
-                <input type="text" id="form-title" class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600">
-            </div>
-            <div class="mb-4">
-                <label for="form-content" class="block text-gray-300 text-sm font-bold mb-2">Description</label>
-                <textarea id="form-content" rows="5" class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" required></textarea>
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-300 text-sm font-bold mb-2">Attach Image (Optional)</label>
-                <input type="file" id="form-image" accept="image/*" class="hidden">
-                <button type="button" onclick="document.getElementById('form-image').click()" class="bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg">Choose File</button>
-                <div id="form-image-preview" class="mt-2"></div>
-            </div>
-            <div class="flex justify-end space-x-4">
-                <button type="button" id="cancel-form-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
-                <button type="submit" id="submit-form-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"></button>
-            </div>
-        </form>
+<!-- Lightbox for Images -->
+<div id="lightbox" class="fixed inset-0 bg-black bg-opacity-90 z-[100] hidden items-center justify-center p-4 overflow-hidden">
+    <div class="relative w-full h-full flex items-center justify-center">
+        <img id="lightbox-img" src="" class="max-w-full max-h-full object-contain transition-transform duration-300 ease-in-out">
+    </div>
+    <div class="absolute top-4 right-4 flex space-x-2">
+        <button id="close-lightbox" class="bg-gray-700 text-white p-2 rounded-full hover:bg-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
     </div>
 </div>
 
@@ -132,103 +128,130 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
     const doubtFeed = document.getElementById('doubt-feed');
-    let attachedFile = null;
-
-    const currentUserId = parseInt(doubtFeed.dataset.currentUserId, 10);
-    const isCurrentUserAdmin = doubtFeed.dataset.isAdmin === 'true';
+    const currentUser = {
+        id: parseInt(doubtFeed.dataset.currentUserId, 10),
+        pic: doubtFeed.dataset.currentUserPic,
+        isAdmin: doubtFeed.dataset.isAdmin === 'true'
+    };
 
     socket.on('connect', () => {
         console.log('Connected to server');
         socket.emit('join', {});
     });
 
-    // --- Modal Handling ---
-    const modal = document.getElementById('form-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const titleContainer = document.getElementById('title-container');
-    const form = document.getElementById('modal-form');
-    const formPostId = document.getElementById('form-post-id');
-    const formParentId = document.getElementById('form-parent-id');
-    const formTitle = document.getElementById('form-title');
-    const formContent = document.getElementById('form-content');
-    const formImage = document.getElementById('form-image');
-    const formImagePreview = document.getElementById('form-image-preview');
-    const submitBtn = document.getElementById('submit-form-btn');
+    // --- New Doubt Form Handling ---
+    const askDoubtBtn = document.getElementById('ask-doubt-btn');
+    const newDoubtContainer = document.getElementById('new-doubt-container');
+    const askDoubtForm = document.getElementById('askDoubtForm');
+    const doubtContent = document.getElementById('doubt-content');
+    const doubtImagesInput = document.getElementById('doubt-images');
+    const doubtImagePreviews = document.getElementById('doubt-image-previews');
+    let doubtFilesStore = new DataTransfer();
 
-    const openModal = (config) => {
-        modalTitle.textContent = config.title;
-        submitBtn.textContent = config.submitText;
-        formPostId.value = config.postId || '';
-        formParentId.value = config.parentId || '';
-        titleContainer.style.display = config.showTitle ? 'block' : 'none';
-        formTitle.required = config.showTitle;
-        form.reset();
-        attachedFile = null;
-        formImagePreview.innerHTML = '';
-        modal.classList.remove('hidden');
+    askDoubtBtn.addEventListener('click', () => {
+        newDoubtContainer.classList.toggle('hidden');
+    });
+
+    const renderDoubtPreviews = () => {
+        doubtImagePreviews.innerHTML = '';
+        doubtImagesInput.files = doubtFilesStore.files;
+
+        if (doubtFilesStore.files.length > 0) {
+            Array.from(doubtFilesStore.files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewWrapper = document.createElement('div');
+                    previewWrapper.className = 'preview-image-wrapper';
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'preview-image';
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.className = 'remove-image-btn';
+                    removeBtn.dataset.index = index;
+                    previewWrapper.appendChild(img);
+                    previewWrapper.appendChild(removeBtn);
+                    doubtImagePreviews.appendChild(previewWrapper);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
     };
-    
-    const closeModal = () => modal.classList.add('hidden');
-    document.getElementById('cancel-form-btn').addEventListener('click', closeModal);
-    document.getElementById('ask-doubt-btn').addEventListener('click', () => {
-        openModal({ title: 'Ask a New Doubt', submitText: 'Post Doubt', showTitle: true });
+
+    doubtImagesInput.addEventListener('change', (event) => {
+        for (const file of event.target.files) {
+            doubtFilesStore.items.add(file);
+        }
+        renderDoubtPreviews();
     });
 
-    // --- Image Preview Handling ---
-    formImage.addEventListener('change', () => {
-        formImagePreview.innerHTML = '';
-        attachedFile = null;
-        const file = formImage.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                attachedFile = e.target.result;
-                formImagePreview.innerHTML = `
-                    <div class="preview-image-wrapper">
-                        <img src="${e.target.result}" class="preview-image">
-                        <button type="button" class="remove-image-btn">&times;</button>
-                    </div>`;
-            };
-            reader.readAsDataURL(file);
+    doubtImagePreviews.addEventListener('click', (event) => {
+        if (event.target.classList.contains('remove-image-btn')) {
+            const index = parseInt(event.target.dataset.index, 10);
+            const newFiles = new DataTransfer();
+            Array.from(doubtFilesStore.files).forEach((file, i) => {
+                if (i !== index) newFiles.items.add(file);
+            });
+            doubtFilesStore = newFiles;
+            renderDoubtPreviews();
         }
     });
 
-    formImagePreview.addEventListener('click', (e) => {
-        if (e.target.classList.contains('remove-image-btn')) {
-            attachedFile = null;
-            formImage.value = '';
-            formImagePreview.innerHTML = '';
-        }
-    });
-
-    // --- Form Submission ---
-    form.addEventListener('submit', (e) => {
+    askDoubtForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const isNewPost = !formPostId.value;
-        if (isNewPost) {
-            socket.emit('new_post', { 
-                title: formTitle.value, 
-                content: formContent.value, 
-                image: attachedFile 
+        const content = doubtContent.value.trim();
+        if (!content && doubtFilesStore.files.length === 0) return;
+
+        const imagePromises = Array.from(doubtFilesStore.files).map(file => {
+            return new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.readAsDataURL(file);
             });
-        } else {
-            socket.emit('new_answer', {
-                post_id: formPostId.value,
-                parent_id: formParentId.value || null,
-                content: formContent.value,
-                image: attachedFile
-            });
-        }
-        closeModal();
+        });
+
+        Promise.all(imagePromises).then(images => {
+            socket.emit('new_post', { content, images });
+            askDoubtForm.reset();
+            doubtFilesStore = new DataTransfer();
+            doubtImagePreviews.innerHTML = '';
+            newDoubtContainer.classList.add('hidden');
+        });
     });
+
+    // --- Function to handle sending answers/replies ---
+    const sendAnswer = (textarea) => {
+        const content = textarea.value.trim();
+        if (!content) return;
+        
+        socket.emit('new_answer', {
+            post_id: textarea.dataset.postId,
+            parent_id: textarea.dataset.parentId || null,
+            content: content
+        });
+        textarea.value = '';
+        textarea.style.height = 'auto';
+
+        if (textarea.classList.contains('reply-textarea')) {
+            textarea.closest('.reply-input-container').remove();
+        }
+    };
 
     // --- HTML Creation Functions ---
     const createPostHtml = (data) => {
         const placeholder = document.getElementById('no-doubts-placeholder');
         if (placeholder) placeholder.remove();
-        const imageHtml = data.image ? `<img src="${data.image}" class="max-w-md rounded-lg">` : '';
+
+        let imagesHtml = '';
+        if (data.images && data.images.length > 0) {
+            const imageElements = data.images.map(src => 
+                `<img src="${src}" alt="Doubt Image" class="h-48 w-auto object-cover rounded-lg flex-shrink-0 cursor-pointer note-image-clickable">`
+            ).join('');
+            imagesHtml = `<div class="flex overflow-x-auto space-x-4 py-2 mt-4 custom-scrollbar">${imageElements}</div>`;
+        }
         
-        const deleteBtnHtml = (data.user_id === currentUserId || isCurrentUserAdmin)
+        const deleteBtnHtml = (data.user_id === currentUser.id || currentUser.isAdmin)
             ? `<button class="delete-post-btn text-gray-500 hover:text-red-500" data-post-id="${data.id}"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg></button>`
             : '';
 
@@ -238,47 +261,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="flex items-center">
                         <a href="/user/${data.author_public_id}"><img src="${data.author_pic}" class="w-12 h-12 rounded-full mr-4"></a>
                         <div>
-                            <a href="/user/${data.author_public_id}" class="hover:underline"><h2 class="text-xl font-bold text-white">${data.title}</h2></a>
-                            <p class="text-sm text-gray-400">Asked by ${data.author_name} on ${data.timestamp}</p>
+                            <a href="/user/${data.author_public_id}" class="hover:underline"><h2 class="text-xl font-bold text-white">${data.author_name}</h2></a>
+                            <p class="text-sm text-gray-400">on ${data.timestamp}</p>
                         </div>
                     </div>
                     ${deleteBtnHtml}
                 </div>
-                <div class="text-gray-300 mt-4 prose prose-invert max-w-none"><p class="whitespace-pre-wrap">${data.content}</p><div class="flex flex-col gap-2 mt-4">${imageHtml}</div></div>
-                <div class="mt-6 border-t border-gray-700 pt-4"><h3 class="text-lg font-semibold text-gray-200 mb-2">Answers</h3><div class="answers-container space-y-4"></div><div class="mt-4"><button class="answer-btn bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg w-full" data-post-id="${data.id}">Write an Answer</button></div></div>
+                <div class="text-gray-300 mt-4 prose prose-invert max-w-none"><p class="whitespace-pre-wrap">${data.content}</p>${imagesHtml}</div>
+                <div class="mt-6 border-t border-gray-700 pt-4">
+                    <h3 class="text-lg font-semibold text-gray-200 mb-4">Answers</h3>
+                    <div class="answers-container space-y-4"></div>
+                    <div class="answer-input-container mt-4 flex items-start space-x-3">
+                        <img src="${currentUser.pic}" class="w-10 h-10 rounded-full">
+                        <div class="flex-grow flex items-center space-x-2">
+                            <textarea class="answer-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your answer..." data-post-id="${data.id}"></textarea>
+                            <button class="send-answer-btn p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700" data-post-id="${data.id}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>`;
         doubtFeed.insertAdjacentHTML('afterbegin', postHtml);
     };
 
     const createAnswerHtml = (data) => {
         const imageHtml = data.image ? `<img src="${data.image}" class="max-w-md rounded-lg mt-2">` : '';
-        
-        const deleteBtnHtml = (data.user_id === currentUserId || isCurrentUserAdmin)
-            ? `<button class="delete-answer-btn text-gray-500 hover:text-red-500 text-xs" data-answer-id="${data.id}">Delete</button>`
-            : '';
-            
-        const replyBtnHtml = `<button class="reply-btn text-blue-400 hover:underline text-sm" data-post-id="${data.post_id}" data-parent-id="${data.id}">Reply</button>`;
-
-        const answerHtml = `
-            <div class="ml-4 mt-4 p-4 bg-gray-800 rounded-lg border-l-2 border-gray-700" id="answer-${data.id}">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <a href="/user/${data.author_public_id}"><img src="${data.author_pic}" class="w-8 h-8 rounded-full mr-3"></a>
-                        <div>
-                            <a href="/user/${data.author_public_id}" class="hover:underline"><p class="font-semibold text-white">${data.author_name}</p></a>
-                            <p class="text-xs text-gray-500">${data.timestamp}</p>
-                        </div>
-                    </div>
-                    ${deleteBtnHtml}
-                </div>
-                <div class="text-gray-300 mt-2 pl-11"><p class="whitespace-pre-wrap">${data.content}</p><div class="flex flex-col gap-2 mt-2">${imageHtml}</div></div>
-                <div class="pl-11 mt-2">${replyBtnHtml}</div>
-                <div class="replies-container ml-4 border-l-2 border-gray-600"></div>
-            </div>`;
-        
-        const parentContainer = data.parent_id
-            ? document.querySelector(`#answer-${data.parent_id} .replies-container`)
-            : document.querySelector(`#post-${data.post_id} .answers-container`);
+        const deleteBtnHtml = (data.user_id === currentUser.id || currentUser.isAdmin) ? `<button class="delete-answer-btn text-gray-500 hover:text-red-500 text-xs" data-answer-id="${data.id}">Delete</button>` : '';
+        const answerHtml = `<div class="ml-4 mt-4 p-4 bg-gray-800 rounded-lg border-l-2 border-gray-700" id="answer-${data.id}"><div class="flex items-center justify-between"><div class="flex items-center"><a href="/user/${data.author_public_id}"><img src="${data.author_pic}" class="w-8 h-8 rounded-full mr-3"></a><div><a href="/user/${data.author_public_id}" class="hover:underline"><p class="font-semibold text-white">${data.author_name}</p></a><p class="text-xs text-gray-500">${data.timestamp}</p></div></div>${deleteBtnHtml}</div><div class="text-gray-300 mt-2 pl-11"><p class="whitespace-pre-wrap">${data.content}</p><div class="flex flex-col gap-2 mt-2">${imageHtml}</div></div><div class="pl-11 mt-2"><button class="reply-btn text-blue-400 hover:underline text-sm" data-post-id="${data.post_id}" data-parent-id="${data.id}">Reply</button></div><div class="replies-container ml-4 border-l-2 border-gray-600"></div></div>`;
+        const parentContainer = data.parent_id ? document.querySelector(`#answer-${data.parent_id} .replies-container`) : document.querySelector(`#post-${data.post_id} .answers-container`);
         if (parentContainer) {
             parentContainer.insertAdjacentHTML('beforeend', answerHtml);
             if (data.parent_id) {
@@ -298,25 +309,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Delegation ---
     doubtFeed.addEventListener('click', (e) => {
         const deletePostBtn = e.target.closest('.delete-post-btn');
-        if (deletePostBtn) {
-            if (confirm('Are you sure you want to delete this post?')) {
-                socket.emit('delete_post', { post_id: deletePostBtn.dataset.postId });
-            }
-        }
+        if (deletePostBtn) if (confirm('Are you sure you want to delete this post?')) socket.emit('delete_post', { post_id: deletePostBtn.dataset.postId });
+        
         const deleteAnswerBtn = e.target.closest('.delete-answer-btn');
-        if (deleteAnswerBtn) {
-            if (confirm('Are you sure you want to delete this answer?')) {
-                socket.emit('delete_answer', { answer_id: deleteAnswerBtn.dataset.answerId });
-            }
+        if (deleteAnswerBtn) if (confirm('Are you sure you want to delete this answer?')) socket.emit('delete_answer', { answer_id: deleteAnswerBtn.dataset.answerId });
+        
+        const sendBtn = e.target.closest('.send-answer-btn, .send-reply-btn');
+        if (sendBtn) {
+            const textarea = sendBtn.previousElementSibling;
+            sendAnswer(textarea);
         }
-        const answerBtn = e.target.closest('.answer-btn');
-        if (answerBtn) {
-            openModal({ title: 'Write an Answer', submitText: 'Post Answer', showTitle: false, postId: answerBtn.dataset.postId });
-        }
+        
         const replyBtn = e.target.closest('.reply-btn');
         if (replyBtn) {
-            openModal({ title: 'Write a Reply', submitText: 'Post Reply', showTitle: false, postId: replyBtn.dataset.postId, parentId: replyBtn.dataset.parentId });
+            const parentAnswer = replyBtn.closest('.p-4.bg-gray-800');
+            const existingReplyBox = parentAnswer.querySelector('.reply-input-container');
+            if(existingReplyBox) existingReplyBox.remove();
+            
+            const replyBoxHtml = `
+                <div class="reply-input-container mt-3 flex items-start space-x-3">
+                    <img src="${currentUser.pic}" class="w-8 h-8 rounded-full">
+                    <div class="flex-grow flex items-center space-x-2">
+                        <textarea class="reply-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your reply..." data-post-id="${replyBtn.dataset.postId}" data-parent-id="${replyBtn.dataset.parentId}"></textarea>
+                        <button class="send-reply-btn p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700" data-post-id="${replyBtn.dataset.postId}" data-parent-id="${replyBtn.dataset.parentId}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            replyBtn.closest('.pl-11').insertAdjacentHTML('afterend', replyBoxHtml);
+            parentAnswer.querySelector('.reply-textarea').focus();
         }
+        
         const viewRepliesBtn = e.target.closest('.view-replies-btn');
         if (viewRepliesBtn) {
             const repliesContainer = viewRepliesBtn.nextElementSibling;
@@ -325,33 +349,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- NEW: Function to reveal parent threads ---
+    // Auto-resize textareas
+    doubtFeed.addEventListener('input', e => {
+        if (e.target.matches('.answer-textarea, .reply-textarea')) {
+            e.target.style.height = 'auto';
+            e.target.style.height = (e.target.scrollHeight) + 'px';
+        }
+    });
+
+    // Lightbox Logic
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('note-image-clickable')) {
+            lightboxImg.src = e.target.src;
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+        }
+    });
+    document.getElementById('close-lightbox').addEventListener('click', () => {
+        lightbox.classList.add('hidden');
+        lightbox.classList.remove('flex');
+    });
+
+    // Highlight on Load
     const revealParents = (element) => {
         if (!element) return;
-        
-        const parentAnswer = element.closest('.ml-4.mt-4'); // Finds the parent answer container
+        const parentAnswer = element.closest('.ml-4.mt-4');
         if (parentAnswer) {
             const repliesContainer = parentAnswer.querySelector('.replies-container');
             const viewRepliesBtn = parentAnswer.querySelector('.view-replies-btn');
-            
-            if (repliesContainer && repliesContainer.classList.contains('hidden')) {
-                if (viewRepliesBtn) {
-                    viewRepliesBtn.click(); // Simulate a click to open the thread
-                }
-            }
-            // Recurse up to the next parent
+            if (repliesContainer && repliesContainer.classList.contains('hidden') && viewRepliesBtn) viewRepliesBtn.click();
             revealParents(parentAnswer.parentElement.closest('.ml-4.mt-4'));
         }
     };
 
-    // --- Highlight on Load ---
     window.addEventListener('load', () => {
         if (window.location.hash) {
             const element = document.querySelector(window.location.hash);
             if (element) {
-                // --- MODIFIED: Call revealParents before scrolling ---
                 revealParents(element);
-                
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 element.classList.add('highlight');
             }
