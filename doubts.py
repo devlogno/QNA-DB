@@ -49,13 +49,20 @@ def handle_new_post(data):
 
     user_primary_stream = current_user.streams[0]
     
-    title = data.get('title')
     content = data.get('content')
-    image_b64 = data.get('image')
+    images_b64 = data.get('images', [])
 
-    if not title or not content:
-        emit('post_error', {'message': 'Title and content are required.'})
+    if not content:
+        emit('post_error', {'message': 'Content is required.'})
         return
+
+    # Auto-generate title from the first 5 words of content
+    title_words = content.split()
+    title = ' '.join(title_words[:5])
+    if len(title_words) > 5:
+        title += '...'
+    if not title:
+        title = "Untitled Doubt"
 
     new_post = DoubtPost(
         user_id=current_user.id, 
@@ -67,12 +74,14 @@ def handle_new_post(data):
     db.session.add(new_post)
     db.session.flush()
 
-    image_url = None
-    if image_b64:
-        image_url = save_base64_image(image_b64)
-        if image_url:
-            new_image = PostImage(image_url=image_url, post_id=new_post.id)
-            db.session.add(new_image)
+    image_urls = []
+    if images_b64:
+        for image_b64 in images_b64:
+            image_url = save_base64_image(image_b64)
+            if image_url:
+                new_image = PostImage(image_url=image_url, post_id=new_post.id)
+                db.session.add(new_image)
+                image_urls.append(image_url)
     
     db.session.commit()
     
@@ -84,7 +93,7 @@ def handle_new_post(data):
         'author_pic': new_post.author.profile_pic_url,
         'author_public_id': new_post.author.public_id,
         'timestamp': new_post.timestamp.strftime('%b %d, %Y %I:%M %p'),
-        'image': image_url,
+        'images': image_urls,
         'user_id': new_post.user_id,
         'is_admin': current_user.is_admin
     }
