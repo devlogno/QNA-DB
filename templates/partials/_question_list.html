@@ -1,0 +1,6 @@
+{% from 'partials/_macros.html' import render_question_card %}
+
+{% for question in questions %}
+    {# Pass the loop object and the calculated offset to the macro #}
+    {{ render_question_card(question, loop, is_premium, loop_offset) }}
+{% endfor %}

@@ -1,8 +1,25 @@
 {# This macro defines the reusable HTML for a single question card with the new design #}
-{% macro render_question_card(question, loop) %}
+{% macro render_question_card(question, loop, is_premium, loop_offset=0) %}
+<style>
+    /* Styles for the smooth CQ answer reveal animation */
+    .cq-answer-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease-in-out, padding 0.4s ease-in-out;
+        padding-top: 0;
+        padding-bottom: 0;
+        background-color: rgba(17, 24, 39, 0.5); 
+        border-radius: 0 0 0.5rem 0.5rem; 
+    }
+    .cq-answer-content.open {
+        max-height: 1000px; 
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+</style>
+
 <div id="question-container-{{ question.id }}" class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 relative">
     
-    <!-- Action Icons (Save & Report) -->
     <div class="absolute top-4 right-4 flex items-center space-x-3">
         <button class="save-question-btn text-gray-400 hover:text-yellow-400 transition-colors duration-200" data-question-id="{{ question.id }}" title="Save Question">
             <svg class="w-6 h-6" fill="{% if question.is_saved %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
@@ -19,8 +36,8 @@
     {% if question.question_type == 'MCQ' %}
         <div class="question-block" data-question-id="{{ question.id }}" data-correct-answer="{{ question.correct_answer }}">
             <div class="text-xl font-semibold mb-2 text-gray-100 flex items-start">
-                <span class="mr-3">{{ loop.index }}.</span>
-                <div class="flex-1">
+                <span class="mr-3">{{ loop.index + loop_offset }}.</span>
+                <div class="flex-1 pr-16">
                     {% if question.question_image_url %}
                         <img src="{{ question.question_image_url }}" alt="Question Image" class="max-w-full h-auto mb-2 rounded-lg">
                     {% endif %}
@@ -32,17 +49,14 @@
             </div>
             
             <div class="options-container grid grid-cols-1 md:grid-cols-2 gap-3">
-                {% set options = ['A', 'B', 'C', 'D'] %}
-                {% for i in range(4) %}
-                    {% set opt_text = question['option_' + options[i].lower()] %}
-                    {% set opt_img = question['option_' + options[i].lower() + '_image_url'] %}
+                {% for opt in ['A', 'B', 'C', 'D'] %}
+                    {% set opt_text = question['option_' + opt.lower()] %}
+                    {% set opt_img = question['option_' + opt.lower() + '_image_url'] %}
                     {% if opt_text or opt_img %}
-                    <button class="mcq-option-btn flex items-center w-full text-left p-3 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors duration-200" data-question-id="{{ question.id }}" data-option="{{ options[i] }}">
-                        <span class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full border border-white text-sm mr-3">{{ options[i] }}</span>
+                    <button class="mcq-option-btn flex items-center w-full text-left p-3 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors duration-200" data-question-id="{{ question.id }}" data-option="{{ opt }}">
+                        <span class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full border border-white text-sm mr-3">{{ opt }}</span>
                         <div>
-                            {% if opt_img %}
-                                <img src="{{ opt_img }}" alt="Option {{ options[i] }} Image" class="max-w-full h-auto mb-1 rounded-lg">
-                            {% endif %}
+                            {% if opt_img %}<img src="{{ opt_img }}" alt="Option {{ opt }} Image" class="max-w-full h-auto mb-1 rounded-lg">{% endif %}
                             {{ opt_text | safe }}
                         </div>
                     </button>
@@ -52,12 +66,22 @@
         </div>
         <div class="mcq-solution-container mt-6 p-4 bg-gray-900 rounded-lg hidden"></div>
 
+        {% if is_premium %}
+        <div class="preloaded-solution hidden">
+            <h3 class="text-lg font-semibold mb-2 text-gray-200">Solution:</h3>
+            {% if question.solution_image_url %}
+                <img src="{{ question.solution_image_url }}" alt="Solution Image" class="max-w-full h-auto mb-2 rounded-lg">
+            {% endif %}
+            <p class="text-gray-300">{{ question.solution | safe }}</p>
+        </div>
+        {% endif %}
+
     {% elif question.question_type == 'CQ' %}
         <div class="uddipak-block mb-4">
             <h3 class="text-lg font-semibold text-yellow-400 mb-2">Stimulus (উদ্দীপক)</h3>
             <div class="text-xl font-semibold text-gray-100 flex items-start">
-                <span class="mr-3">{{ loop.index }}.</span>
-                <div class="flex-1">
+                <span class="mr-3">{{ loop.index + loop_offset }}.</span>
+                <div class="flex-1 pr-16">
                     {% if question.question_image_url %}
                         <img src="{{ question.question_image_url }}" alt="Question Image" class="max-w-full h-auto my-2 rounded-lg">
                     {% endif %}
@@ -77,8 +101,17 @@
                         <span class="font-semibold text-lg text-gray-200">{{ {'a':'ক', 'b':'খ', 'c':'গ', 'd':'ঘ'}[q_char] }}. {{ question_text | safe }}</span>
                         <svg class="w-6 h-6 text-gray-400 transform transition-transform duration-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
-                    <div class="cq-answer hidden p-4 pl-10 bg-gray-900/50 rounded-b-lg">
+                    <div class="cq-answer-content pl-10"></div>
+                    {% if is_premium %}
+                    <div class="preloaded-cq-answer hidden" data-sub-question="{{ q_char }}">
+                        <div class="text-gray-300">
+                            {{ question['answer_' + q_char] | safe }}
+                            {% if question['answer_' + q_char + '_image_url'] %}
+                                <img src="{{ question['answer_' + q_char + '_image_url'] }}" alt="Sub-answer image" class="max-w-md h-auto my-2 rounded-lg">
+                            {% endif %}
+                        </div>
                     </div>
+                    {% endif %}
                 </div>
                 {% endif %}
             {% endfor %}

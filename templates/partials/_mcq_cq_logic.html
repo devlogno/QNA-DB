@@ -1,0 +1,190 @@
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const mainContent = document.querySelector('main');
+
+        if (mainContent) {
+            const renderMathJax = (element) => {
+                if (window.MathJax && element) {
+                    window.MathJax.typesetPromise([element]);
+                }
+            };
+
+            const showUpgradePrompt = (container, redirectUrl) => {
+                container.innerHTML = `
+                    <div class="absolute inset-0 bg-gray-800 bg-opacity-80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-lg">
+                        <h3 class="text-2xl font-bold text-yellow-400 mb-2">Limit Reached</h3>
+                        <p class="text-white mb-4">You've used all your free solution views.</p>
+                        <a href="${redirectUrl}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg transform hover:scale-105 transition-transform duration-200">
+                            Upgrade to Premium
+                        </a>
+                        <p class="text-gray-400 text-sm mt-3">Unlock unlimited solutions and all features!</p>
+                    </div>
+                `;
+                container.classList.remove('hidden');
+                container.style.position = 'relative';
+                container.style.minHeight = '200px';
+            };
+
+            mainContent.addEventListener('click', async (event) => {
+                const target = event.target;
+
+                const mcqOption = target.closest('.mcq-option-btn');
+                if (mcqOption && !mcqOption.disabled) {
+                    const questionId = mcqOption.dataset.questionId;
+                    const questionBlock = mcqOption.closest('.question-block');
+                    const solutionContainer = questionBlock.parentElement.querySelector('.mcq-solution-container');
+                    const preloadedSolutionDiv = questionBlock.parentElement.querySelector('.preloaded-solution');
+
+                    const selectedOption = mcqOption.dataset.option;
+                    const correctOption = questionBlock.dataset.correctAnswer;
+                    
+                    questionBlock.querySelectorAll('.mcq-option-btn').forEach(button => {
+                        button.disabled = true;
+                        const option = button.dataset.option;
+                        if (option.toLowerCase() === correctOption.toLowerCase()) {
+                            button.classList.remove('bg-gray-900', 'hover:bg-gray-700');
+                            button.classList.add('bg-green-600', 'text-white');
+                        } else if (option.toLowerCase() === selectedOption.toLowerCase()) {
+                            button.classList.remove('bg-gray-900', 'hover:bg-gray-700');
+                            button.classList.add('bg-red-600', 'text-white');
+                        }
+                    });
+
+                    if (preloadedSolutionDiv) {
+                        solutionContainer.innerHTML = preloadedSolutionDiv.innerHTML;
+                        solutionContainer.classList.remove('hidden');
+                        renderMathJax(solutionContainer);
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/get_solution/${questionId}`, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        
+                        if (response.status === 403) {
+                            const data = await response.json();
+                            showUpgradePrompt(solutionContainer, data.redirect_url);
+                            return;
+                        }
+
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            solutionContainer.innerHTML = data.html;
+                            solutionContainer.classList.remove('hidden');
+                            renderMathJax(solutionContainer);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching MCQ solution:", error);
+                    }
+                    return;
+                }
+
+                const cqToggle = target.closest('.cq-question-toggle');
+                if (cqToggle) {
+                    const cqItem = cqToggle.closest('.cq-item');
+                    const answerDiv = cqItem.querySelector('.cq-answer-content');
+                    const questionId = cqItem.dataset.questionId;
+                    const subQuestionChar = cqItem.dataset.subQuestion;
+                    const icon = cqToggle.querySelector('svg');
+                    
+                    if (cqItem.dataset.revealed === 'true') {
+                        answerDiv.classList.toggle('open');
+                        if (icon) icon.classList.toggle('rotate-180');
+                        return;
+                    }
+
+                    const preloadedCqAnswerDiv = cqItem.querySelector(`.preloaded-cq-answer[data-sub-question="${subQuestionChar}"]`);
+
+                    if (preloadedCqAnswerDiv) {
+                        cqItem.dataset.revealed = 'true';
+                        answerDiv.innerHTML = preloadedCqAnswerDiv.innerHTML;
+                        setTimeout(() => { answerDiv.classList.add('open'); }, 10);
+                        if (icon) icon.classList.add('rotate-180');
+                        renderMathJax(answerDiv);
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/get_cq_sub_answer/${questionId}/${subQuestionChar}`, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+
+                        if (response.status === 403) {
+                            const data = await response.json();
+                            showUpgradePrompt(answerDiv, data.redirect_url);
+                            return;
+                        }
+
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            cqItem.dataset.revealed = 'true';
+                            answerDiv.innerHTML = data.html;
+                            setTimeout(() => { answerDiv.classList.add('open'); }, 10);
+                            if (icon) icon.classList.add('rotate-180');
+                            renderMathJax(answerDiv);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching CQ solution:", error);
+                    }
+                    return;
+                }
+
+                const saveBtn = target.closest('.save-question-btn');
+                if (saveBtn) {
+                    const questionId = saveBtn.dataset.questionId;
+                    try {
+                        const response = await fetch(`/save_question/${questionId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            const svg = saveBtn.querySelector('svg');
+                            if (data.action === 'saved') {
+                                svg.setAttribute('fill', 'currentColor');
+                            } else {
+                                svg.setAttribute('fill', 'none');
+                            }
+
+                            if (data.action === 'unsaved' && window.location.pathname.includes('/history')) {
+                                 const questionContainer = document.getElementById(`question-container-${questionId}`);
+                                 if (questionContainer) {
+                                     questionContainer.style.transition = 'opacity 0.5s ease';
+                                     questionContainer.style.opacity = '0';
+                                     setTimeout(() => {
+                                         questionContainer.remove();
+                                         if (document.querySelectorAll('.save-question-btn').length === 0) {
+                                             document.querySelector('.space-y-8').innerHTML = `<div class="bg-gray-800 p-6 rounded-lg text-center"><p class="text-xl font-semibold text-gray-200">No Saved Questions Yet</p></div>`;
+                                         }
+                                     }, 500);
+                                 }
+                            }
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    } catch (error) {
+                        alert('An error occurred.');
+                    }
+                    return;
+                }
+                
+                const reportBtn = target.closest('.report-question-btn');
+                if (reportBtn) {
+                    const questionId = reportBtn.dataset.questionId;
+                    const reason = prompt("Please provide a reason for reporting this question (optional):");
+                    if (reason === null) return;
+                    try {
+                        const response = await fetch(`/report_question/${questionId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason }) });
+                        const data = await response.json();
+                        alert(data.message);
+                    } catch (error) {
+                        alert('An error occurred while reporting.');
+                    }
+                    return;
+                }
+            });
+
+            if (window.MathJax) {
+                window.MathJax.typesetPromise();
+            }
+        }
+    });
+</script>
