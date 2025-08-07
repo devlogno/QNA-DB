@@ -56,7 +56,6 @@ def create_app():
     from analytics import analytics_bp
     from leaderboard import leaderboard_bp
     from quiz import quiz_bp
-
     from payments import payments_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -78,6 +77,45 @@ def create_app():
     app.register_blueprint(payments_bp)
 
     from models import User, Notification, BroadcastNotificationView, Level, Stream, Board, Subject, Chapter, Topic, generate_public_id, Badge
+
+    # --- MODIFIED: Create database tables and seed initial data on startup ---
+    with app.app_context():
+        db.create_all()
+        # Seed the database only if it's empty
+        if Level.query.count() == 0:
+            print("Seeding initial database categories...")
+            ssc = Level(name='SSC')
+            hsc = Level(name='HSC')
+            admission = Level(name='Admission')
+            
+            science = Stream(name='Science', level=ssc)
+            arts = Stream(name='Arts', level=ssc)
+            hsc_science = Stream(name='Science', level=hsc)
+            admission_eng = Stream(name='Engineering', level=admission)
+            
+            dhaka_board = Board(name='Dhaka Board', tag='DB', stream=science)
+            buet = Board(name='BUET', tag='BUET', stream=admission_eng)
+            
+            physics = Subject(name='Physics', board=dhaka_board)
+            math = Subject(name='Math', board=buet)
+            
+            vectors = Chapter(name='Vectors', subject=physics)
+            calculus = Chapter(name='Calculus', subject=math)
+            
+            dot_product = Topic(name='Dot Product', chapter=vectors)
+            limits = Topic(name='Limits', chapter=calculus)
+            
+            db.session.add_all([
+                ssc, hsc, admission,
+                science, arts, hsc_science, admission_eng,
+                dhaka_board, buet,
+                physics, math,
+                vectors, calculus,
+                dot_product, limits
+            ])
+            db.session.commit()
+            print("Seeding complete.")
+
 
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
@@ -113,43 +151,7 @@ def create_app():
 
     @app.before_request
     def before_request_handler():
-        if not hasattr(app, 'tables_created'):
-            with app.app_context():
-                db.create_all()
-                if Level.query.count() == 0:
-                    ssc = Level(name='SSC')
-                    hsc = Level(name='HSC')
-                    admission = Level(name='Admission')
-                    
-                    science = Stream(name='Science', level=ssc)
-                    arts = Stream(name='Arts', level=ssc)
-                    hsc_science = Stream(name='Science', level=hsc)
-                    admission_eng = Stream(name='Engineering', level=admission)
-                    
-                    dhaka_board = Board(name='Dhaka Board', tag='DB', stream=science)
-                    buet = Board(name='BUET', tag='BUET', stream=admission_eng)
-                    
-                    physics = Subject(name='Physics', board=dhaka_board)
-                    math = Subject(name='Math', board=buet)
-                    
-                    vectors = Chapter(name='Vectors', subject=physics)
-                    calculus = Chapter(name='Calculus', subject=math)
-                    
-                    dot_product = Topic(name='Dot Product', chapter=vectors)
-                    limits = Topic(name='Limits', chapter=calculus)
-                    
-                    db.session.add_all([
-                        ssc, hsc, admission,
-                        science, arts, hsc_science, admission_eng,
-                        dhaka_board, buet,
-                        physics, math,
-                        vectors, calculus,
-                        dot_product, limits
-                    ])
-                    
-                    db.session.commit()
-            app.tables_created = True
-
+        # --- MODIFIED: Removed database creation from here ---
         if current_user.is_authenticated and not current_user.is_admin:
             if not current_user.streams:
                 allowed_endpoints = ['profile.setup', 'auth.get_streams', 'auth.logout', 'static']

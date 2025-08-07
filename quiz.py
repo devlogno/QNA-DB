@@ -1,10 +1,12 @@
 # quiz.py
 import json
-# --- MODIFIED: Added jsonify to the import statement ---
+import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy.sql.expression import func
-from models import Question, Subject, Chapter, Topic, ExamSession, ExamAnswer
+from sqlalchemy import case, or_
+# --- MODIFIED: Added 'Board' to the import list ---
+from models import Question, Subject, Chapter, Topic, ExamSession, ExamAnswer, Board
 from services.achievements_service import check_all_achievements
 from extensions import db
 from decorators import check_access
@@ -16,42 +18,58 @@ quiz_bp = Blueprint('quiz', __name__, url_prefix='/quiz')
 def create_quiz():
     """Handles the creation of a custom quiz."""
     if request.method == 'POST':
-        subject_id = request.form.get('subject_id', type=int)
-        chapter_id = request.form.get('chapter_id', type=int)
-        topic_id = request.form.get('topic_id', type=int)
-        complexity = request.form.get('complexity', type=int)
-        num_questions = request.form.get('num_questions', type=int)
-        time_limit = request.form.get('time_limit', type=int)
-        question_type = request.form.get('question_type')
+        data = request.form
+        
+        subject_ids = request.form.getlist('subject_ids', type=int)
+        chapter_ids = request.form.getlist('chapter_ids', type=int)
+        topic_ids = request.form.getlist('topic_ids', type=int)
+        
+        complexity = data.get('complexity', type=int)
+        time_limit = data.get('time_limit', type=int)
+        question_type = data.get('question_type')
+        negative_marking = 'negative_marking' in data
+        
+        num_mcq = data.get('num_mcq', 0, type=int)
+        num_cq = data.get('num_cq', 0, type=int)
 
-        if not all([subject_id, num_questions, time_limit, question_type]):
-            flash('Please fill out all required fields.', 'danger')
+        if not any([subject_ids, chapter_ids, topic_ids]):
+            flash('You must select at least one subject, chapter, or topic.', 'danger')
             return redirect(url_for('quiz.create_quiz'))
 
-        query = Question.query.filter_by(question_type=question_type, subject_id=subject_id)
-        if chapter_id:
-            query = query.filter_by(chapter_id=chapter_id)
-        if topic_id:
-            query = query.filter_by(topic_id=topic_id)
-        if complexity:
-            query = query.filter(Question.complexity <= complexity)
+        base_query = Question.query
+        filters = []
+        if topic_ids: filters.append(Question.topic_id.in_(topic_ids))
+        if chapter_ids: filters.append(Question.chapter_id.in_(chapter_ids))
+        if subject_ids: filters.append(Question.subject_id.in_(subject_ids))
+        if filters: base_query = base_query.filter(or_(*filters))
+        if complexity: base_query = base_query.filter(Question.complexity <= complexity)
 
-        questions = query.order_by(func.random()).limit(num_questions).all()
+        questions = []
+        if question_type == 'MCQ' or question_type == 'Both':
+            mcqs = base_query.filter_by(question_type='MCQ').order_by(func.random()).limit(num_mcq).all()
+            questions.extend(mcqs)
+        
+        if question_type == 'CQ' or question_type == 'Both':
+            cqs = base_query.filter_by(question_type='CQ').order_by(func.random()).limit(num_cq).all()
+            questions.extend(cqs)
 
         if not questions:
             flash('No questions found matching your criteria. Please try a broader search.', 'warning')
             return redirect(url_for('quiz.create_quiz'))
 
-        # Create a new exam session
+        question_ids = [q.id for q in questions]
+
         exam = ExamSession(
             user_id=current_user.id,
-            score=0, # Will be updated on submission
+            score=0,
             total_questions=len(questions),
-            time_taken_seconds=0, # Will be updated on submission
+            time_taken_seconds=0,
+            question_ids_json=question_ids,
             settings={
-                'subject_id': subject_id, 'chapter_id': chapter_id, 'topic_id': topic_id,
-                'complexity': complexity, 'num_questions': num_questions, 
-                'time_limit_minutes': time_limit, 'question_type': question_type
+                'subject_ids': subject_ids, 'chapter_ids': chapter_ids, 'topic_ids': topic_ids,
+                'complexity': complexity, 'num_mcq': num_mcq, 'num_cq': num_cq,
+                'time_limit_minutes': time_limit, 'question_type': question_type,
+                'negative_marking': negative_marking
             }
         )
         db.session.add(exam)
@@ -59,8 +77,41 @@ def create_quiz():
 
         return redirect(url_for('quiz.start_quiz', session_id=exam.id))
 
-    subjects = Subject.query.order_by(Subject.name).all()
-    return render_template('quiz_create.html', subjects=subjects)
+    # --- GET Request Logic ---
+    user_stream_ids = [s.id for s in current_user.streams]
+    user_subjects = Subject.query.join(Board).filter(Board.stream_id.in_(user_stream_ids)).order_by(Subject.name).all()
+
+    return render_template('quiz_create.html', subjects=user_subjects)
+
+@quiz_bp.route('/api/chapters_and_topics')
+@login_required
+def get_chapters_and_topics():
+    subject_ids_str = request.args.get('subject_ids')
+    if not subject_ids_str:
+        return jsonify({'error': 'No subject_ids provided'}), 400
+    
+    subject_ids = [int(id) for id in subject_ids_str.split(',')]
+    
+    subjects_data = Subject.query.filter(Subject.id.in_(subject_ids)).all()
+    
+    response_data = []
+    for subject in subjects_data:
+        subject_dict = {
+            'id': subject.id,
+            'name': subject.name,
+            'chapters': []
+        }
+        for chapter in subject.chapters:
+            chapter_dict = {
+                'id': chapter.id,
+                'name': chapter.name,
+                'topics': [{'id': topic.id, 'name': topic.name} for topic in chapter.topics]
+            }
+            subject_dict['chapters'].append(chapter_dict)
+        response_data.append(subject_dict)
+        
+    return jsonify(response_data)
+
 
 @quiz_bp.route('/session/<int:session_id>')
 @login_required
@@ -71,15 +122,13 @@ def start_quiz(session_id):
         flash('You are not authorized to take this exam.', 'danger')
         return redirect(url_for('routes.dashboard'))
 
-    # Refetch questions based on the saved settings
-    settings = exam.settings
-    query = Question.query.filter_by(question_type=settings['question_type'], subject_id=settings['subject_id'])
-    if settings.get('chapter_id'):
-        query = query.filter_by(chapter_id=settings['chapter_id'])
-    if settings.get('topic_id'):
-        query = query.filter_by(topic_id=settings['topic_id'])
-    
-    questions = query.order_by(func.random()).limit(settings['num_questions']).all()
+    ordered_ids = exam.question_ids_json
+    if not ordered_ids:
+        flash('Could not load questions for this session. It may be an older exam.', 'danger')
+        return redirect(url_for('routes.dashboard'))
+
+    ordering = case({id: index for index, id in enumerate(ordered_ids)}, value=Question.id)
+    questions = Question.query.filter(Question.id.in_(ordered_ids)).order_by(ordering).all()
     
     return render_template('quiz_session.html', exam=exam, questions=questions)
 
@@ -92,36 +141,46 @@ def submit_quiz(session_id):
         return jsonify({'error': 'Unauthorized'}), 403
 
     data = request.get_json()
-    answers = data.get('answers', {})
+    submitted_answers = data.get('answers', {})
     time_taken = data.get('time_taken', 0)
     
-    score = 0
-    question_ids = answers.keys()
-    correct_answers = {str(q.id): q.correct_answer for q in Question.query.filter(Question.id.in_(question_ids)).all()}
+    # If it's a CQ-only exam, it's just for practice, not scoring.
+    if exam.settings.get('question_type') == 'CQ':
+        exam.time_taken_seconds = time_taken
+        exam.score = 0
+        db.session.commit()
+        return jsonify({'success': True, 'redirect_url': url_for('quiz.quiz_results', session_id=exam.id)})
 
-    for q_id, user_answer in answers.items():
-        is_correct = correct_answers.get(q_id) == user_answer
+    score = 0
+    all_question_ids = exam.question_ids_json
+    questions_in_exam = Question.query.filter(Question.id.in_(all_question_ids)).all()
+    questions_map = {q.id: q for q in questions_in_exam}
+
+    negative_marking = exam.settings.get('negative_marking', False)
+    
+    for q_id in all_question_ids:
+        question = questions_map.get(q_id)
+        if not question or question.question_type != 'MCQ':
+            continue
+
+        user_answer = submitted_answers.get(str(q_id))
+        correct_answer = question.correct_answer.strip() if question.correct_answer else None
+        
+        is_correct = (user_answer is not None) and (user_answer.lower() == correct_answer.lower())
+        
         if is_correct:
             score += 1
-        
-        new_answer = ExamAnswer(
-            exam_session_id=exam.id,
-            question_id=int(q_id),
-            user_answer=user_answer,
-            is_correct=is_correct
-        )
-        db.session.add(new_answer)
+        elif user_answer is not None and negative_marking:
+            score -= 0.25 # Standard negative marking value
 
-    # Update exam session
+        new_answer_record = ExamAnswer(exam_session_id=exam.id, question_id=q_id, user_answer=user_answer, is_correct=is_correct)
+        db.session.add(new_answer_record)
+
     exam.score = score
     exam.time_taken_seconds = time_taken
-    
-    # Award points
-    current_user.points += score # 1 point per correct answer
+    current_user.points += max(0, score) # Don't award negative points overall
     
     db.session.commit()
-    
-    # Check for achievements
     check_all_achievements(current_user)
 
     return jsonify({'success': True, 'redirect_url': url_for('quiz.quiz_results', session_id=exam.id)})
@@ -134,4 +193,26 @@ def quiz_results(session_id):
     if exam.user_id != current_user.id:
         return redirect(url_for('routes.dashboard'))
         
-    return render_template('quiz_results.html', exam=exam)
+    is_premium = current_user.is_admin or (current_user.subscription_expiry and current_user.subscription_expiry > datetime.datetime.utcnow())
+
+    ordered_ids = exam.question_ids_json
+    ordered_items = []
+    if ordered_ids:
+        # For scored exams, get the answers
+        if exam.settings.get('question_type') != 'CQ':
+            answers_map = {ans.question_id: ans for ans in exam.answers}
+            ordered_items = [answers_map.get(qid) for qid in ordered_ids if answers_map.get(qid)]
+        # For CQ practice, just get the questions
+        else:
+            ordering = case({id: index for index, id in enumerate(ordered_ids)}, value=Question.id)
+            ordered_items = Question.query.filter(Question.id.in_(ordered_ids)).order_by(ordering).all()
+    else:
+        ordered_items = exam.answers.order_by(ExamAnswer.id).all()
+
+    saved_question_ids = {sq.question_id for sq in current_user.saved_questions}
+    for item in ordered_items:
+        question = item if isinstance(item, Question) else item.question
+        if question:
+            question.is_saved = question.id in saved_question_ids
+
+    return render_template('quiz_results.html', exam=exam, is_premium=is_premium, items=ordered_items)
