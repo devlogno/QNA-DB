@@ -43,7 +43,7 @@
 
 <!-- Form for asking a new doubt (initially hidden) -->
 <div id="new-doubt-container" class="hidden mb-6">
-    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+    <div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-bold text-gray-100 mb-4">Ask a new doubt</h2>
         <form id="askDoubtForm">
             <textarea id="doubt-content" name="content" rows="4" required class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600 mb-2" placeholder="Describe your doubt in detail..."></textarea>
@@ -65,7 +65,7 @@
      data-current-user-pic="{{ current_user.profile_pic_url }}"
      data-is-admin="{{ current_user.is_admin | tojson }}">
     {% for post in posts %}
-    <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700" id="post-{{ post.id }}">
+    <div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700" id="post-{{ post.id }}">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
                 <a href="{{ url_for('user.public_profile', public_id=post.author.public_id) }}"><img src="{{ post.author.profile_pic_url }}" class="w-12 h-12 rounded-full mr-4"></a>
@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : '';
 
         const postHtml = `
-            <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700" id="post-${data.id}">
+            <div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700" id="post-${data.id}">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <a href="/user/${data.author_public_id}"><img src="${data.author_pic}" class="w-12 h-12 rounded-full mr-4"></a>

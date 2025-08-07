@@ -1,161 +1,243 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Question Bank{% endblock %}</title>
+    <title>{% block title %}Proshno Bank{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script type="text/javascript" id="MathJax-script" async
             src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
     </script>
-    <script>
-        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
-    </script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
-        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #374151 #0f172a; }
-        .sidebar-scroll::-webkit-scrollbar { width: 8px; }
-        .sidebar-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 10px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background-color: #374151; border-radius: 10px; border: 2px solid #0f172a; }
-        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #64748b; }
-        .mcq-option-btn { border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
-        .mcq-option-btn:disabled { cursor: not-allowed; }
+      :root {
+        --neon-blue: #00d2ff;
+        --dark-bg: #121212;
+        --dark-card: #1e1e1e;
+        --dark-border: #2d2d2d;
+      }
+      body {
+          font-family: 'Inter', sans-serif;
+      }
+      .glow-effect {
+          box-shadow: 0 0 15px rgba(0, 210, 255, 0.6);
+      }
+      .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+      .sidebar-scroll::-webkit-scrollbar-track { background: var(--dark-bg); }
+      .sidebar-scroll::-webkit-scrollbar-thumb { background-color: var(--dark-border); border-radius: 10px; }
+      .main-scroll::-webkit-scrollbar { width: 8px; }
+      .main-scroll::-webkit-scrollbar-track { background: var(--dark-bg); }
+      .main-scroll::-webkit-scrollbar-thumb { background-color: var(--dark-border); border-radius: 10px; }
     </style>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'neon-blue': 'var(--neon-blue)',
+              'dark-bg': 'var(--dark-bg)',
+              'dark-card': 'var(--dark-card)',
+              'dark-border': 'var(--dark-border)',
+            },
+          }
+        }
+      }
+      MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="flex h-screen overflow-hidden dark">
+<body class="bg-dark-bg text-gray-200">
 
-    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-gray-950 text-gray-100 flex flex-col p-4 shadow-lg overflow-y-auto sidebar-scroll transform -translate-x-full transition-transform duration-300 ease-in-out z-50 lg:relative lg:translate-x-0 lg:shadow-none">
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-dark-card border-r border-dark-border flex-col p-4 shadow-lg overflow-y-auto sidebar-scroll transform -translate-x-full transition-transform duration-300 ease-in-out z-50 lg:relative lg:translate-x-0">
         <div class="flex justify-between items-center mb-8">
-            <div class="text-2xl font-bold text-center flex-grow">Question Bank</div>
-            <button id="sidebarCloseBtn" class="lg:hidden p-2 rounded-full hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
+             <a href="/" class="flex items-center space-x-2">
+                <div class="p-1 bg-neon-blue rounded-md">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="black">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z"/>
+                    </svg>
+                </div>
+                <span class="text-2xl font-bold text-white">Proshno</span>
+            </a>
+            <button id="sidebarCloseBtn" class="lg:hidden p-2 rounded-full hover:bg-gray-700">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
         <nav class="flex-grow">
-            <ul>
-                <li class="mb-4"><a href="{{ url_for('routes.dashboard') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>Dashboard</a></li>
-                <li class="mb-4"><a href="{{ url_for('news.news_feed') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h2m-4 3V5a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"></path></svg>News</a></li>
-                <li class="mb-4"><a href="{{ url_for('doubts.community_forum') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>Community Doubts</a></li>
-                <li class="mb-4"><a href="{{ url_for('routes.browse_levels') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9.207a1 1 0 010-1.414L10.586 5.5a1 1 0 011.414 0l2.358 2.358a1 1 0 010 1.414l-2.358 2.358a1 1 0 01-1.414 0L8.228 9.207zM15 17h.01M12 17h.01M9 17h.01M21 12c0 4.418-4.03 8-9 8a9.986 9.986 0 01-4.243-1.076M4.07 16A9.956 9.956 0 013 12C3 7.582 7.03 4 12 4s9 3.582 9 8z"></path></svg>Browse Questions</a></li>
-                <li class="mb-4"><a href="{{ url_for('quiz.create_quiz') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>Practice Quiz</a></li>
-                <li class="mb-4"><a href="{{ url_for('history.saved_questions') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>History</a></li>
-                <li class="mb-4"><a href="{{ url_for('analytics.performance_dashboard') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>Analysis</a></li>
-                <li class="mb-4"><a href="{{ url_for('leaderboard.show_leaderboard') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>Leaderboard</a></li>
-                {% if current_user.is_admin %}<li class="mb-4"><a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.515-1.35 1.76-2.317 3.175-2.317s2.66 1.017 3.175 2.317l.475 1.25H21a1 1 0 011 1v3a1 1 0 01-1 1h-.675l-.475 1.25c-.515 1.35-1.76 2.317-3.175-2.317s-2.66-1.017-3.175-2.317l-.475-1.25H3a1 1 0 01-1-1v-3a1 1 0 011-1h.675l.475-1.25z"></path></svg>Admin Panel</a></li>{% endif %}
-                <li class="mb-4"><a href="{{ url_for('notes.view_notes') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Notes</a></li>
-                <li class="mb-4"><a href="{{ url_for('gemini.doubt_solver_page') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9.207a1 1 0 010-1.414L10.586 5.5a1 1 0 011.414 0l2.358 2.358a1 1 0 010 1.414l-2.358 2.358a1 1 0 01-1.414 0L8.228 9.207zM15 17h.01M12 17h.01M9 17h.01M21 12c0 4.418-4.03 8-9 8a9.986 9.986 0 01-4.243-1.076M4.07 16A9.956 9.956 0 013 12C3 7.582 7.03 4 12 4s9 3.582 9 8z"></path></svg>Doubt Solver</a></li>
-                <li class="mb-4"><a href="{{ url_for('payments.pricing_page') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-12v4m-2-2h4m5 4v4m-2-2h4M5 3a2 2 0 00-2 2v1m16 0V5a2 2 0 00-2-2h-1m-4 16l2 2l2-2m-4-4l2 2l2-2m-4 4V3"></path></svg>Upgrade</a></li>                              
-                {% if current_user.is_authenticated %}<li class="mb-4"><a href="{{ url_for('auth.logout') }}" class="flex items-center p-3 rounded-lg hover:bg-gray-800 transition-colors duration-200"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>Logout</a></li>{% endif %}
+            <ul class="space-y-2">
+                <li><a href="{{ url_for('routes.dashboard') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>Dashboard</a></li>
+                <li><a href="{{ url_for('news.news_feed') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h2m-4 3V5a2 2 0 012-2h2a2 2 0 012 2v1m-6 0h6"></path></svg>News</a></li>
+                <li><a href="{{ url_for('doubts.community_forum') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>Community</a></li>
+                <li><a href="{{ url_for('routes.browse_levels') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>Browse</a></li>
+                <li><a href="{{ url_for('quiz.create_quiz') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>Practice Quiz</a></li>
+                <li><a href="{{ url_for('history.saved_questions') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>History</a></li>
+                <li><a href="{{ url_for('analytics.performance_dashboard') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>Analysis</a></li>
+                <li><a href="{{ url_for('leaderboard.show_leaderboard') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>Leaderboard</a></li>
+                <li><a href="{{ url_for('notes.view_notes') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Notes</a></li>
+                <li><a href="{{ url_for('gemini.doubt_solver_page') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>AI Doubt Solver</a></li>
+                 {% if current_user.is_admin %}
+                <li class="border-t border-dark-border pt-2 mt-2"><a href="{{ url_for('admin.admin_dashboard') }}" class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.515-1.35 1.76-2.317 3.175-2.317s2.66 1.017 3.175 2.317l.475 1.25H21a1 1 0 011 1v3a1 1 0 01-1 1h-.675l-.475 1.25c-.515 1.35-1.76 2.317-3.175-2.317s-2.66-1.017-3.175-2.317l-.475-1.25H3a1 1 0 01-1-1v-3a1 1 0 011-1h.675l.475-1.25z"></path></svg>Admin Panel</a></li>
+                {% endif %}
             </ul>
         </nav>
-        <div class="mt-auto text-sm text-gray-400 text-center">&copy; 2025 Question Bank. All rights reserved.</div>
+        <div class="mt-auto">
+            <a href="{{ url_for('payments.pricing_page') }}" class="flex items-center justify-center p-3 rounded-lg bg-neon-blue text-black font-bold hover:opacity-90 transition-opacity"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-12v4m-2-2h4m5 4v4m-2-2h4M5 3a2 2 0 00-2 2v1m16 0V5a2 2 0 00-2-2h-1m-4 16l2 2l2-2m-4-4l2 2l2-2m-4 4V3"></path></svg>Upgrade Plan</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('auth.logout') }}" class="flex items-center p-3 mt-2 rounded-lg text-gray-400 hover:bg-dark-border hover:text-white transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>Logout</a>
+            {% endif %}
+        </div>
     </aside>
 
     <div id="sidebarOverlay" class="fixed inset-0 bg-black opacity-50 z-40 hidden lg:hidden"></div>
 
-    <main class="flex-1 flex flex-col bg-gray-900 overflow-y-auto transition-colors duration-300">
-        <header class="flex justify-between items-center p-4 bg-gray-950 shadow-md text-gray-100">
-            <button id="sidebarToggleBtn" class="lg:hidden p-2 rounded-full hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-            </button>
-            <div class="flex items-center ml-auto space-x-4">
-                {% if current_user.is_authenticated %}
-                <span class="text-gray-300 font-medium hidden sm:block">{{ current_user.name }}</span>
-                <a href="{{ url_for('profile.profile') }}" class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden border-2 border-blue-500">
-                    <img src="{{ current_user.profile_pic_url }}?t={{ now().timestamp() | int }}" alt="Profile Picture" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/100x100/A0AEC0/FFFFFF?text=User';">
-                </a>
-                <div class="relative" id="notification-container">
-                    <button id="notification-bell" class="p-2 rounded-full hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-white">
-                        <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                        <span id="notification-dot" class="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 border-2 border-gray-950 {% if unread_notification_count == 0 %}hidden{% endif %}"></span>
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Header -->
+        <header class="flex-shrink-0 bg-dark-card border-b border-dark-border">
+            <div class="mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <button id="sidebarToggleBtn" class="lg:hidden p-2 rounded-full hover:bg-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                     </button>
-                    <div id="notification-panel" class="hidden absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-20">
-                        <div class="p-4 font-bold border-b border-gray-700">Notifications</div>
-                        <div id="notification-list" class="max-h-96 overflow-y-auto">
-                            {% if notifications and notifications|length > 0 %}
-                                {% for notification in notifications %}
-                                    {% if notification.link_url %}
-                                        <a href="{{ notification.link_url }}" class="block p-4 border-b border-gray-700 hover:bg-gray-700">
-                                            <p class="text-sm text-gray-200">{{ notification.message }}</p>
-                                            <p class="text-xs text-gray-500 mt-1">{{ notification.timestamp.strftime('%b %d, %Y %I:%M %p') }}</p>
-                                        </a>
+                    <div class="flex items-center ml-auto space-x-4">
+                        {% if current_user.is_authenticated %}
+                        <div class="relative" id="notification-container">
+                            <button id="notification-bell" class="p-2 rounded-full hover:bg-gray-700">
+                                <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                <span id="notification-dot" class="absolute top-0 right-0 block h-3 w-3 rounded-full bg-red-500 border-2 border-dark-card {% if unread_notification_count == 0 %}hidden{% endif %}"></span>
+                            </button>
+                            <div id="notification-panel" class="hidden absolute right-0 mt-2 w-80 bg-dark-card border border-dark-border rounded-lg shadow-xl z-20">
+                                <div class="p-4 font-bold border-b border-dark-border">Notifications</div>
+                                <div id="notification-list" class="max-h-96 overflow-y-auto">
+                                    {% if notifications and notifications|length > 0 %}
+                                        {% for notification in notifications %}
+                                            <a href="{{ notification.link_url or '#' }}" class="block p-4 border-b border-dark-border hover:bg-dark-border">
+                                                <p class="text-sm text-gray-200">{{ notification.message }}</p>
+                                                <p class="text-xs text-gray-500 mt-1">{{ notification.timestamp.strftime('%b %d, %Y %I:%M %p') }}</p>
+                                            </a>
+                                        {% endfor %}
                                     {% else %}
-                                        <div class="p-4 border-b border-gray-700">
-                                            <p class="text-sm text-gray-200">{{ notification.message }}</p>
-                                            <p class="text-xs text-gray-500 mt-1">{{ notification.timestamp.strftime('%b %d, %Y %I:%M %p') }}</p>
-                                        </div>
+                                        <p id="no-notifications-placeholder" class="text-center text-gray-400 p-4">No notifications yet.</p>
                                     {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <p id="no-notifications-placeholder" class="text-center text-gray-400 p-4">No notifications yet.</p>
-                            {% endif %}
+                                </div>
+                            </div>
                         </div>
+                        <a href="{{ url_for('profile.profile') }}" class="flex items-center space-x-3">
+                            <img src="{{ current_user.profile_pic_url }}?t={{ now().timestamp() | int }}" alt="Profile Picture" class="w-10 h-10 rounded-full object-cover border-2 border-neon-blue">
+                            <span class="text-white font-semibold hidden sm:block">{{ current_user.name }}</span>
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
-                {% endif %}
             </div>
         </header>
-        <div class="p-4">
-            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="p-3 rounded-lg mb-3 {% if category == 'success' %} bg-green-500 text-white {% elif category == 'danger' %} bg-red-500 text-white {% elif category == 'info' %} bg-blue-500 text-white {% elif category == 'warning' %} bg-yellow-500 text-white {% endif %}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
-        </div>
-        <section class="p-6 flex-1">{% block content %}{% endblock %}</section>
-    </main>
-    
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar'), sidebarToggleBtn = document.getElementById('sidebarToggleBtn'), sidebarCloseBtn = document.getElementById('sidebarCloseBtn'), sidebarOverlay = document.getElementById('sidebarOverlay'), notificationBell = document.getElementById('notification-bell'), notificationPanel = document.getElementById('notification-panel'), notificationDot = document.getElementById('notification-dot');
-            const toggleSidebar = () => { if(sidebar) sidebar.classList.toggle('-translate-x-full'); if(sidebarOverlay) sidebarOverlay.classList.toggle('hidden'); };
-            if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
-            if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', toggleSidebar);
-            if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
-            if (notificationBell) notificationBell.addEventListener('click', () => { notificationPanel.classList.toggle('hidden'); if (!notificationPanel.classList.contains('hidden') && notificationDot) { fetch('/notifications/mark-as-read', { method: 'POST' }).then(response => response.json()).then(data => { if (data.status === 'success') notificationDot.classList.add('hidden'); }); } });
-            document.addEventListener('click', function(event) { const container = document.getElementById('notification-container'); if (container && !container.contains(event.target)) if(notificationPanel) notificationPanel.classList.add('hidden'); });
-            window.addEventListener('resize', () => { if (window.innerWidth >= 1024) { if(sidebar) sidebar.classList.remove('-translate-x-full'); if(sidebarOverlay) sidebarOverlay.classList.add('hidden'); } });
-        });
-    </script>
-    
-    {% include 'partials/_mcq_cq_logic.html' %}
 
-    {% if current_user.is_authenticated %}
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const socket = io();
-            const notificationDot = document.getElementById('notification-dot');
-            const notificationList = document.getElementById('notification-list');
-            const noNotificationsPlaceholder = document.getElementById('no-notifications-placeholder');
-
-            socket.on('connect', () => {
-                console.log('Global socket connected.');
-                socket.emit('join', {});
-            });
-
-            socket.on('new_notification', (data) => {
-                if (notificationDot) {
-                    notificationDot.classList.remove('hidden');
-                }
-
-                if (noNotificationsPlaceholder) {
-                    noNotificationsPlaceholder.remove();
-                }
-
-                const newNotificationHtml = `
-                    <a href="${data.link}" class="block p-4 border-b border-gray-700 hover:bg-gray-700">
-                        <p class="text-sm text-gray-200">${data.message}</p>
-                        <p class="text-xs text-gray-500 mt-1">Just now</p>
-                    </a>`;
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto main-scroll">
+            <div class="p-4 sm:p-6 lg:p-8">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="p-4 rounded-lg mb-4 text-white
+                                {% if category == 'success' %} bg-green-600/80 border border-green-500
+                                {% elif category == 'danger' %} bg-red-600/80 border border-red-500
+                                {% elif category == 'info' %} bg-blue-600/80 border border-blue-500
+                                {% elif category == 'warning' %} bg-yellow-600/80 border border-yellow-500
+                                {% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
                 
-                if (notificationList) {
-                    notificationList.insertAdjacentHTML('afterbegin', newNotificationHtml);
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const notificationBell = document.getElementById('notification-bell');
+        const notificationPanel = document.getElementById('notification-panel');
+        const notificationDot = document.getElementById('notification-dot');
+
+        const toggleSidebar = () => {
+            if(sidebar) sidebar.classList.toggle('-translate-x-full');
+            if(sidebarOverlay) sidebarOverlay.classList.toggle('hidden');
+        };
+
+        if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
+        if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', toggleSidebar);
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        if (notificationBell) {
+            notificationBell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notificationPanel.classList.toggle('hidden');
+                if (!notificationPanel.classList.contains('hidden') && notificationDot) {
+                    fetch('/notifications/mark-as-read', { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => { if (data.status === 'success') notificationDot.classList.add('hidden'); });
                 }
             });
+        }
+
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('notification-container');
+            if (container && !container.contains(event.target)) {
+                if(notificationPanel) notificationPanel.classList.add('hidden');
+            }
         });
-    </script>
-    {% endif %}
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 1024) {
+                if(sidebar) sidebar.classList.remove('-translate-x-full');
+                if(sidebarOverlay) sidebarOverlay.classList.add('hidden');
+            }
+        });
+    });
+</script>
+
+{% include 'partials/_mcq_cq_logic.html' %}
+
+{% if current_user.is_authenticated %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const socket = io();
+        const notificationDot = document.getElementById('notification-dot');
+        const notificationList = document.getElementById('notification-list');
+        const noNotificationsPlaceholder = document.getElementById('no-notifications-placeholder');
+
+        socket.on('connect', () => {
+            socket.emit('join', {});
+        });
+
+        socket.on('new_notification', (data) => {
+            if (notificationDot) {
+                notificationDot.classList.remove('hidden');
+            }
+            if (noNotificationsPlaceholder) {
+                noNotificationsPlaceholder.remove();
+            }
+            const newNotificationHtml = `
+                <a href="${data.link || '#'}" class="block p-4 border-b border-dark-border hover:bg-dark-border">
+                    <p class="text-sm text-gray-200">${data.message}</p>
+                    <p class="text-xs text-gray-500 mt-1">Just now</p>
+                </a>`;
+            if (notificationList) {
+                notificationList.insertAdjacentHTML('afterbegin', newNotificationHtml);
+            }
+        });
+    });
+</script>
+{% endif %}
+
 </body>
 </html>

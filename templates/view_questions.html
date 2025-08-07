@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+{% from 'partials/_macros.html' import render_question_card with context %}
+
+{% block title %}Questions for {{ item.name }}{% endblock %}
+
+{% block content %}
+    <div class="mb-6 text-gray-400">
+        <!-- Breadcrumbs can be dynamically generated here if needed -->
+        ... &raquo; {{ item.name }}
+    </div>
+    <h1 class="text-3xl font-bold text-white mb-6">Questions for {{ item.name }}</h1>
+
+    <div class="space-y-6">
+        {% if questions %}
+            {% for question in questions %}
+                {{ render_question_card(question, loop, is_premium=is_premium, loop_offset=(pagination.page - 1) * pagination.per_page) }}
+            {% endfor %}
+        {% else %}
+            <div class="bg-dark-card p-8 rounded-xl border border-dark-border text-center">
+                <p class="text-xl font-semibold text-gray-200">No Questions Found</p>
+                <p class="text-gray-400 mt-2">There are no questions in this category yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-8 flex justify-center">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('routes.view_questions', filter_by=filter_by, item_id=item.id, page=pagination.prev_num) }}" class="px-4 py-2 mx-1 bg-dark-card border border-dark-border rounded-lg">&laquo; Previous</a>
+        {% endif %}
+        {% if pagination.has_next %}
+            <a href="{{ url_for('routes.view_questions', filter_by=filter_by, item_id=item.id, page=pagination.next_num) }}" class="px-4 py-2 mx-1 bg-dark-card border border-dark-border rounded-lg">Next &raquo;</a>
+        {% endif %}
+    </div>
+{% endblock %}

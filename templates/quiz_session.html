@@ -1,29 +1,41 @@
 {% extends "layout.html" %}
-{% from 'partials/_macros.html' import render_question_card %}
+{% from 'partials/_macros.html' import render_question_card with context %}
 
-{% block title %}Quiz in Progress{% endblock %}
+{% block title %}Quiz in Progress - Proshno Bank{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<style>
+    /* Style for the selected option during the quiz */
+    .selected-glow {
+        border-color: var(--neon-blue) !important;
+        box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+        background-color: var(--dark-border);
+    }
+</style>
+
+<div class="max-w-7xl mx-auto">
     <!-- Header with Timer -->
-    <div class="bg-gray-800 p-4 rounded-lg shadow-md border border-gray-700 mb-6 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-white">Quiz Session</h1>
+    <div class="bg-dark-card p-4 rounded-xl border border-dark-border mb-8 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Quiz in Progress</h1>
+            <p class="text-gray-400">{{ exam.settings.question_type }} Quiz</p>
+        </div>
         <div class="text-right">
             <p class="text-gray-400">Time Remaining</p>
-            <p id="timer" class="text-2xl font-bold text-red-400">{{ exam.settings.time_limit_minutes }}:00</p>
+            <p id="timer" class="text-3xl font-bold text-red-400 tabular-nums">{{ exam.settings.time_limit_minutes }}:00</p>
         </div>
     </div>
 
     <!-- Questions Container -->
-    <div id="quiz-container" class="space-y-8">
+    <div id="quiz-container" class="space-y-6">
         {% for question in questions %}
-            {{ render_question_card(question, loop) }}
+            {{ render_question_card(question, loop, quiz_mode=True) }}
         {% endfor %}
     </div>
 
     <!-- Submit Button -->
     <div class="mt-8">
-        <button id="submit-quiz-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg">
+        <button id="submit-quiz-btn" class="w-full bg-neon-blue text-black font-bold py-4 px-6 rounded-lg text-lg hover:opacity-90 transition-opacity">
             Submit Quiz
         </button>
     </div>
@@ -57,8 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
         submitBtn.textContent = 'Submitting...';
 
         const answers = {};
-        if ("{{ exam.settings.question_type }}" === "MCQ") {
-            document.querySelectorAll('.mcq-option-btn:checked').forEach(input => {
+        // --- MODIFIED: Correctly select the hidden radio inputs ---
+        if ("{{ exam.settings.question_type }}" !== "CQ") {
+            document.querySelectorAll('.quiz-answer-input:checked').forEach(input => {
                 answers[input.dataset.questionId] = input.dataset.option;
             });
         }
@@ -86,34 +99,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     submitBtn.addEventListener('click', submitQuiz);
 
-    // Modify question card behavior for quiz mode
     quizContainer.addEventListener('click', (event) => {
         const mcqOption = event.target.closest('.mcq-option-btn');
-        if (mcqOption) {
+        if (mcqOption && !mcqOption.disabled) {
             const questionId = mcqOption.dataset.questionId;
-            // Un-style other buttons for the same question
-            document.querySelectorAll(`.mcq-option-btn[data-question-id="${questionId}"]`).forEach(btn => {
-                btn.classList.remove('bg-blue-600', 'text-white');
-                btn.classList.add('bg-black', 'text-white');
-            });
-            // Style the selected button
-            mcqOption.classList.add('bg-blue-600', 'text-white');
-            mcqOption.classList.remove('bg-black');
             
-            // Create a hidden radio button to hold the state
-            let radio = document.getElementById(`radio-${questionId}-${mcqOption.dataset.option}`);
+            document.querySelectorAll(`.mcq-option-btn[data-question-id="${questionId}"]`).forEach(btn => {
+                btn.disabled = true;
+                if (btn !== mcqOption) {
+                    btn.classList.add('opacity-50');
+                }
+            });
+
+            mcqOption.classList.remove('border-dark-border', 'hover:border-neon-blue');
+            mcqOption.classList.add('selected-glow');
+            
+            let radio = document.querySelector(`input.quiz-answer-input[name="q_${questionId}"]`);
             if(!radio) {
-                 document.querySelectorAll(`input[name="q_${questionId}"]`).forEach(r => r.remove());
                  radio = document.createElement('input');
                  radio.type = 'radio';
                  radio.name = `q_${questionId}`;
-                 radio.id = `radio-${questionId}-${mcqOption.dataset.option}`;
-                 radio.dataset.questionId = questionId;
-                 radio.dataset.option = mcqOption.dataset.option;
-                 radio.className = 'mcq-option-btn'; // Use same class to find it later
+                 radio.className = 'quiz-answer-input'; 
                  radio.style.display = 'none';
                  quizContainer.appendChild(radio);
             }
+            radio.dataset.questionId = questionId;
+            radio.dataset.option = mcqOption.dataset.option;
+            radio.value = mcqOption.dataset.option;
             radio.checked = true;
         }
     });
