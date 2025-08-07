@@ -9,7 +9,7 @@ from .question_models import (
 )
 from .content_models import NewsArticle, NewsVote
 from .doubt_models import DoubtPost, DoubtAnswer, PostImage
-# --- ADDED: Import new models ---
 from .gamification_models import Badge, user_badges
 from .analytics_models import ExamSession, ExamAnswer
-
+# --- ADDED: Import new template models ---
+from .template_models import SubjectTemplate, ChapterTemplate, TopicTemplate

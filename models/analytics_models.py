@@ -13,17 +13,35 @@ class ExamSession(db.Model):
     time_taken_seconds = db.Column(db.Integer, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
     
-    # Store the settings of the quiz for later review
     settings = db.Column(db.JSON, nullable=True) 
     
+    question_ids_json = db.Column(db.JSON, nullable=True)
+
     user = db.relationship('User', backref='exam_sessions')
     answers = db.relationship('ExamAnswer', backref='exam_session', lazy='dynamic', cascade="all, delete-orphan")
 
     @property
     def accuracy(self):
+        # This is a general accuracy, which might be misleading for mixed exams.
         if self.total_questions == 0:
             return 0
         return round((self.score / self.total_questions) * 100, 2)
+
+    # --- NEW: Property for accurate MCQ-based accuracy ---
+    @property
+    def mcq_accuracy(self):
+        """Calculates accuracy based only on the number of MCQs in the quiz."""
+        num_mcq = self.settings.get('num_mcq', 0)
+        if self.settings.get('question_type') == 'MCQ':
+            num_mcq = self.total_questions
+        
+        if num_mcq == 0:
+            return 0
+        
+        # Ensure score isn't negative for accuracy calculation
+        display_score = max(0, self.score)
+        return round((display_score / num_mcq) * 100, 2)
+
 
 class ExamAnswer(db.Model):
     """
@@ -36,4 +54,3 @@ class ExamAnswer(db.Model):
     is_correct = db.Column(db.Boolean, nullable=False)
     
     question = db.relationship('Question')
-
