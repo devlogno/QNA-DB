@@ -11,10 +11,10 @@
 
             const showUpgradePrompt = (container, redirectUrl) => {
                 container.innerHTML = `
-                    <div class="absolute inset-0 bg-gray-800 bg-opacity-80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-lg">
+                    <div class="absolute inset-0 bg-dark-bg bg-opacity-80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-lg">
                         <h3 class="text-2xl font-bold text-yellow-400 mb-2">Limit Reached</h3>
                         <p class="text-white mb-4">You've used all your free solution views.</p>
-                        <a href="${redirectUrl}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg transform hover:scale-105 transition-transform duration-200">
+                        <a href="${redirectUrl}" class="inline-block px-6 py-3 bg-neon-blue text-black font-bold rounded-lg hover:opacity-90 transition-opacity">
                             Upgrade to Premium
                         </a>
                         <p class="text-gray-400 text-sm mt-3">Unlock unlimited solutions and all features!</p>
@@ -29,7 +29,9 @@
                 const target = event.target;
 
                 const mcqOption = target.closest('.mcq-option-btn');
-                if (mcqOption && !mcqOption.disabled) {
+                const inQuizMode = mcqOption && mcqOption.closest('#quiz-container');
+
+                if (mcqOption && !mcqOption.disabled && !inQuizMode) {
                     const questionId = mcqOption.dataset.questionId;
                     const questionBlock = mcqOption.closest('.question-block');
                     const solutionContainer = questionBlock.parentElement.querySelector('.mcq-solution-container');
@@ -41,12 +43,16 @@
                     questionBlock.querySelectorAll('.mcq-option-btn').forEach(button => {
                         button.disabled = true;
                         const option = button.dataset.option;
+                        
+                        // --- MODIFIED: Apply the same styling as the quiz results page ---
+                        button.classList.remove('hover:border-neon-blue'); // Remove hover effect
+                        
                         if (option.toLowerCase() === correctOption.toLowerCase()) {
-                            button.classList.remove('bg-gray-900', 'hover:bg-gray-700');
-                            button.classList.add('bg-green-600', 'text-white');
+                            button.classList.remove('bg-dark-bg', 'border-dark-border');
+                            button.classList.add('border-green-500/50', 'bg-green-500/10');
                         } else if (option.toLowerCase() === selectedOption.toLowerCase()) {
-                            button.classList.remove('bg-gray-900', 'hover:bg-gray-700');
-                            button.classList.add('bg-red-600', 'text-white');
+                            button.classList.remove('bg-dark-bg', 'border-dark-border');
+                            button.classList.add('border-red-500/50', 'bg-red-500/10');
                         }
                     });
 
