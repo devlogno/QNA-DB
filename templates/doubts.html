@@ -36,7 +36,7 @@
 
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-3xl font-bold text-gray-100">Community Doubt Forum</h1>
-    <button id="ask-doubt-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+    <button id="ask-doubt-btn" class="bg-neon-blue hover:opacity-90 transition-opacity text-black font-bold py-2 px-4 rounded-lg">
         Ask a New Doubt
     </button>
 </div>
@@ -53,7 +53,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 </label>
                 <input type="file" id="doubt-images" name="images" accept="image/*" multiple class="hidden">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Post Doubt</button>
+                <button type="submit" class="bg-neon-blue hover:bg-neon-blue-dark text-black font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">Post Doubt</button>
             </div>
         </form>
     </div>
@@ -101,7 +101,7 @@
                 <img src="{{ current_user.profile_pic_url }}" class="w-10 h-10 rounded-full">
                 <div class="flex-grow flex items-center space-x-2">
                     <textarea class="answer-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your answer..." data-post-id="{{ post.id }}"></textarea>
-                    <button class="send-answer-btn p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700" data-post-id="{{ post.id }}">
+                    <button class="send-answer-btn p-2 text-black bg-neon-blue rounded-full hover:opacity-90 transition-opacity" data-post-id="{{ post.id }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
                     </button>
                 </div>

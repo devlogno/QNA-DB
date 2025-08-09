@@ -43,7 +43,7 @@
     <div class="space-y-6">
         {% if notes %}
             {% for note in notes %}
-            <div class="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
+            <div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700">
                 <h3 class="text-xl font-semibold text-gray-200 mb-2">{{ note.title }}</h3>
                 <p class="text-sm text-gray-500 mb-4">{{ note.timestamp.strftime('%B %d, %Y at %I:%M %p') }}</p>
                 
@@ -93,7 +93,7 @@
 </div>
 
 <form id="addNoteForm" method="POST" action="{{ url_for('notes.view_notes') }}" enctype="multipart/form-data" 
-      class="fixed bottom-0 right-0 left-0 lg:left-64 bg-gray-900 p-4 border-t border-gray-700 z-40">
+      class="fixed bottom-0 right-0 left-0 lg:left-64 bg-[rgb(30,30,30)] p-4 border-t border-gray-700 z-40">
     <div>
         <div class="flex flex-wrap items-center justify-center gap-2 mb-2">
             <select id="add_level_id" name="level_id" class="category-select shadow border border-gray-600 rounded-lg py-1 px-2 text-xs text-gray-100 bg-gray-700" data-child="streams" data-form-type="add"></select>
@@ -116,7 +116,7 @@
             <input type="file" id="images" name="images" accept="image/*" multiple class="hidden">
             <textarea id="content" name="content" rows="1" required
                       class="shadow appearance-none border-none rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-800 focus:outline-none" placeholder="Type a message..."></textarea>
-            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-bold p-2 rounded-full">
+            <button type="submit" class="bg-neon-blue hover:opacity-90 transition-opacity text-black font-bold p-2 rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                 </svg>
@@ -126,7 +126,7 @@
 </form>
 
 <div id="editNoteModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
-    <div class="bg-gray-900 p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div class="bg-[rgb(30,30,30)] p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
         <h2 class="text-2xl font-bold text-gray-100 mb-4">Edit Note</h2>
         <form id="editNoteForm" method="POST" enctype="multipart/form-data" class="flex-grow overflow-y-auto pr-4">
             <div class="mb-4">
@@ -141,11 +141,10 @@
                 </div>
                 <div>
                     <label for="edit_stream_id" class="block text-gray-400 text-xs font-bold mb-1">Stream</label>
-                    <select id="edit_stream_id" name="stream_id" class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="boards" data-form-type="edit"></select>
+                    <select id="edit_stream_id" name="stream_id" class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="subjects" data-form-type="edit"></select>
                 </div>
                 <div>
-                    <label for="edit_board_id" class="block text-gray-400 text-xs font-bold mb-1">Board</label>
-                    <select id="edit_board_id" name="board_id" class="category-select shadow border border-gray-600 rounded-lg w-full py-2 px-3 text-gray-100 bg-gray-700" data-child="subjects" data-form-type="edit"></select>
+
                 </div>
                 <div>
                     <label for="edit_subject_id" class="block text-gray-400 text-xs font-bold mb-1">Subject</label>
@@ -175,7 +174,7 @@
             
             <div class="flex justify-end space-x-4 mt-auto pt-4">
                 <button type="button" onclick="closeEditModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Save Changes</button>
+                <button type="submit" class="bg-neon-blue hover:opacity-90 transition-opacity text-black font-bold py-2 px-4 rounded-lg">Save Changes</button>
             </div>
         </form>
     </div>

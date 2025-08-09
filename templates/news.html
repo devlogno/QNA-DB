@@ -18,9 +18,9 @@
                 <!-- UPDATED: Target audience tags -->
                 <div class="flex items-center space-x-2 text-sm text-gray-400">
                     {% if article.stream %}
-                        <span class="bg-purple-600 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ article.stream.name }}</span>
+                        <span class="bg-gray-600 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ article.stream.name }}</span>
                     {% elif article.level %}
-                        <span class="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ article.level.name }}</span>
+                        <span class="bg-gray-600 text-white px-2 py-1 rounded-full text-xs font-semibold">{{ article.level.name }}</span>
                     {% else %}
                         <span class="bg-gray-600 text-white px-2 py-1 rounded-full text-xs font-semibold">General</span>
                     {% endif %}
