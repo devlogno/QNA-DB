@@ -9,6 +9,62 @@ from extensions import db, oauth
 
 auth_bp = Blueprint('auth', __name__)
 
+# --- NEW: API endpoints for React frontend ---
+@auth_bp.route('/api/start_registration', methods=['POST'])
+def api_start_registration():
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({'success': False, 'message': 'Email is required.'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if user:
+        return jsonify({'success': False, 'message': 'This email is already registered. Please log in.', 'action': 'redirect', 'url': '/auth/login'}), 409
+
+    session['auth_flow_email'] = email
+    
+    try:
+        otp = generate_otp(email)
+        if send_otp_email(email, otp):
+            return jsonify({'success': True, 'action': 'verify_otp'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to send OTP email.'}), 500
+    except Exception as e:
+        current_app.logger.error(f"OTP sending failed: {e}")
+        return jsonify({'success': False, 'message': 'An internal error occurred while sending OTP.'}), 500
+
+@auth_bp.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not email or not password:
+        return jsonify({'success': False, 'message': 'Email and password are required.'}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    if user and user.provider != 'email':
+        return jsonify({'success': False, 'message': f'This account was created using {user.provider.capitalize()}. Please use that method to log in.'}), 400
+    
+    if user and user.check_password(password):
+        login_user(user)
+        return jsonify({'success': True, 'user': {
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'is_admin': user.is_admin,
+            'profile_pic_url': user.profile_pic_url
+        }})
+    else:
+        return jsonify({'success': False, 'message': 'Invalid email or password.'}), 401
+
+@auth_bp.route('/api/logout', methods=['POST'])
+@login_required
+def api_logout():
+    logout_user()
+    return jsonify({'success': True})
+
 # --- OAuth Configuration (unchanged) ---
 oauth.register(
     name='google',

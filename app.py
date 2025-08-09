@@ -57,6 +57,7 @@ def create_app():
     from leaderboard import leaderboard_bp
     from quiz import quiz_bp
     from payments import payments_bp
+    from api_routes import api_routes_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(routes_bp, url_prefix='/')
@@ -75,6 +76,7 @@ def create_app():
     app.register_blueprint(leaderboard_bp)
     app.register_blueprint(quiz_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(api_routes_bp)
 
     from models import User, Notification, BroadcastNotificationView, Level, Stream, Board, Subject, Chapter, Topic, generate_public_id, Badge
 
