@@ -44,3 +44,25 @@ def get_categories(category_name):
     # Boards have an extra 'tag' field we might want in the future,
     # but for now, a consistent name/id format is best.
     return jsonify([{'id': item.id, 'name': item.name} for item in items])
+
+
+#Note subjects for a specific level and stream
+@api_bp.route('/api/subjects/level/<int:level_id>/stream/<int:stream_id>')
+def get_subjects_for_level_and_stream(level_id, stream_id):
+    """
+    Fetches unique subjects by name based on a given level and stream.
+    This bypasses the need to select a board first.
+    """
+    # Query all subjects matching the level and stream
+    subjects_query = Subject.query.filter_by(level_id=level_id, stream_id=stream_id).all()
+    
+    # Use a dictionary to filter for unique subject names in Python
+    # This avoids potential issues with database-specific 'distinct' behavior
+    # and ensures a clean list is returned to the user.
+    unique_subjects = {}
+    for s in subjects_query:
+        if s.name not in unique_subjects:
+            unique_subjects[s.name] = {'id': s.id, 'name': s.name}
+    
+    # Return the unique subjects as a JSON list
+    return jsonify(list(unique_subjects.values()))

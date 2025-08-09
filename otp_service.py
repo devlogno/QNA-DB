@@ -1,29 +1,34 @@
-# otp_service.py
 import random
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import datetime
 from flask import current_app
+# --- MODIFIED: Import the database and new OTP model ---
+from extensions import db
+from models import OTP
 
-# In-memory storage for OTPs. For production, consider using Redis or a database.
-otp_store = {}
+# In-memory storage is no longer needed
+# otp_store = {}
 MAX_ATTEMPTS = 5
 
 def generate_otp(email):
     """
-    Generates a 6-digit OTP, stores it with a timestamp and attempt counter, and returns it.
+    Generates a 6-digit OTP, stores it in the database, and returns it.
     """
-    otp = str(random.randint(100000, 999999))
-    timestamp = datetime.datetime.now()
-    # Storing OTP with timestamp and an attempt counter
-    otp_store[email] = {'otp': otp, 'timestamp': timestamp, 'attempts': 0}
-    print(f"Generated OTP for {email}: {otp}") # For debugging purposes
-    return otp
+    # Clean up any old OTP for this email first
+    OTP.query.filter_by(email=email).delete()
+
+    otp_code = str(random.randint(100000, 999999))
+    new_otp = OTP(email=email, otp=otp_code)
+    db.session.add(new_otp)
+    db.session.commit()
+    print(f"Generated OTP for {email}: {otp_code}") # For debugging
+    return otp_code
 
 def send_otp_email(recipient_email, otp):
     """
-    Sends an email to the user with their OTP.
+    Sends an email to the user with their OTP. (No changes needed here)
     """
     try:
         msg = MIMEMultipart()
@@ -31,7 +36,6 @@ def send_otp_email(recipient_email, otp):
         msg['To'] = recipient_email
         msg['Subject'] = 'Your Verification Code for Question Bank'
 
-        # UPDATED: Changed validity time in the email body
         body = f"""
         Hello,
 
@@ -55,43 +59,42 @@ def send_otp_email(recipient_email, otp):
         server.quit()
         return True
     except Exception as e:
-        print(f"Error sending OTP email to {recipient_email}: {e}") # Log the error
+        print(f"Error sending OTP email to {recipient_email}: {e}")
         return False
 
 def verify_otp(email, user_otp):
     """
-    Verifies the OTP provided by the user, checking for expiry and attempt limits.
+    Verifies the OTP from the database, checking for expiry and attempt limits.
     """
-    if email not in otp_store:
+    stored_otp_data = OTP.query.filter_by(email=email).first()
+
+    if not stored_otp_data:
         return False, "OTP not found or has expired. Please request a new one."
 
-    stored_data = otp_store[email]
-    stored_otp = stored_data['otp']
-    timestamp = stored_data['timestamp']
-
-    # UPDATED: Check if OTP has expired (5-minute validity)
-    if datetime.datetime.now() - timestamp > datetime.timedelta(minutes=5):
-        del otp_store[email] # Clean up expired OTP
+    # Check if OTP has expired (5-minute validity)
+    if datetime.datetime.utcnow() - stored_otp_data.timestamp > datetime.timedelta(minutes=5):
+        db.session.delete(stored_otp_data)
+        db.session.commit()
         return False, "OTP has expired. Please request a new one."
 
-    # Increment attempt counter
-    stored_data['attempts'] += 1
-
-    # Check if attempts have exceeded the maximum
-    if stored_data['attempts'] > MAX_ATTEMPTS:
-        del otp_store[email] # Clean up after too many attempts
+    # Increment and check attempt counter
+    stored_otp_data.attempts += 1
+    if stored_otp_data.attempts > MAX_ATTEMPTS:
+        db.session.delete(stored_otp_data)
+        db.session.commit()
         return False, f"Maximum of {MAX_ATTEMPTS} attempts reached. Please request a new OTP."
 
     # Check if the OTP is correct
-    if user_otp == stored_otp:
-        del otp_store[email] # Clean up successfully used OTP
+    if user_otp == stored_otp_data.otp:
+        db.session.delete(stored_otp_data) # Clean up on success
+        db.session.commit()
         return True, "OTP verified successfully."
     else:
-        remaining_attempts = MAX_ATTEMPTS - stored_data['attempts']
+        db.session.commit() # Save the increased attempt count
+        remaining_attempts = MAX_ATTEMPTS - stored_otp_data.attempts
         if remaining_attempts > 0:
-            # Provide feedback on remaining attempts
             return False, f"Invalid OTP. You have {remaining_attempts} attempts remaining."
         else:
-            # Final attempt failed
-            del otp_store[email]
+            db.session.delete(stored_otp_data)
+            db.session.commit()
             return False, "Invalid OTP. No attempts remaining. Please request a new one."
