@@ -1,6 +1,6 @@
 {# templates/partials/_unified_filter.html #}
 {% macro render_unified_filter(breadcrumb_items, filter_options) %}
-<div class="w-full bg-gray-900 p-4 rounded-lg shadow-md border border-gray-700 mb-6">
+<div class="w-full bg-[rgb(30,30,30)] p-4 rounded-lg shadow-md border border-gray-700 mb-6">
     
     <nav class="text-sm font-medium mb-4" aria-label="Breadcrumb">
         <ol class="list-none p-0 inline-flex flex-wrap items-center">
@@ -25,7 +25,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <div class="nav-container flex-grow flex overflow-x-auto whitespace-nowrap px-2 subject-scroll-container">
-            <span class="text-gray-400 font-semibold mr-4 self-center flex-shrink-0">{{ filter_options.title }}:</span>
+            <span class="text-gray-400 font-semibold mr-4 self-center flex-shrink-0"></span>
             
             {# CORRECTED LINE: Changed filter_options.items to filter_options['items'] #}
             {% for item in filter_options['items'] %}
