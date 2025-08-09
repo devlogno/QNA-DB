@@ -142,3 +142,13 @@ class ChatHistory(db.Model):
     image_url = db.Column(db.String(200), nullable=True)
     response = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.datetime.utcnow)
+
+
+# Add this model to the end of the file
+
+class OTP(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    otp = db.Column(db.String(6), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    attempts = db.Column(db.Integer, default=0)

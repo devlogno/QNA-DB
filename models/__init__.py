@@ -2,7 +2,7 @@
 from .user_models import (
     User, Notification, BroadcastNotificationView, Note, 
     NoteImage, SavedQuestion, ReportedQuestion, user_streams,
-    ChatHistory, UserReport, generate_public_id
+    ChatHistory, UserReport, generate_public_id, OTP
 )
 from .question_models import (
     Question, Level, Stream, Board, Subject, Chapter, Topic
