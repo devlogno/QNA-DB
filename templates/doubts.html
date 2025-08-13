@@ -13,8 +13,8 @@
     }
     .preview-image-wrapper {
         position: relative;
-        width: 100px;
-        height: 100px;
+        width: 80px; /* Smaller previews */
+        height: 80px;
     }
     .preview-image {
         width: 100%;
@@ -41,19 +41,19 @@
     </button>
 </div>
 
-<!-- Form for asking a new doubt (initially hidden) -->
+<!-- Form for asking a new doubt -->
 <div id="new-doubt-container" class="hidden mb-6">
-    <div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700">
+    <div class="bg-[rgb(30,30,30)] p-4 sm:p-6 rounded-lg shadow-md border border-gray-700">
         <h2 class="text-xl font-bold text-gray-100 mb-4">Ask a new doubt</h2>
         <form id="askDoubtForm">
-            <textarea id="doubt-content" name="content" rows="4" required class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600 mb-2" placeholder="Describe your doubt in detail..."></textarea>
+            <textarea id="doubt-content" name="content" rows="4" class="w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600 mb-2" placeholder="Describe your doubt in detail..."></textarea>
             <div id="doubt-image-previews" class="flex flex-wrap gap-2 mb-4"></div>
             <div class="flex justify-between items-center">
                 <label for="doubt-images" class="cursor-pointer text-gray-400 hover:text-white p-2 bg-gray-700 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 </label>
                 <input type="file" id="doubt-images" name="images" accept="image/*" multiple class="hidden">
-                <button type="submit" class="bg-neon-blue hover:bg-neon-blue-dark text-black font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">Post Doubt</button>
+                <button type="submit" class="bg-neon-blue text-black font-bold py-2 px-4 rounded-lg hover:opacity-90 transition-opacity">Post Doubt</button>
             </div>
         </form>
     </div>
@@ -65,7 +65,7 @@
      data-current-user-pic="{{ current_user.profile_pic_url }}"
      data-is-admin="{{ current_user.is_admin | tojson }}">
     {% for post in posts %}
-    <div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700" id="post-{{ post.id }}">
+    <div class="bg-[rgb(30,30,30)] p-4 sm:p-6 rounded-lg shadow-md border border-gray-700" id="post-{{ post.id }}">
         <div class="flex items-center justify-between">
             <div class="flex items-center">
                 <a href="{{ url_for('user.public_profile', public_id=post.author.public_id) }}"><img src="{{ post.author.profile_pic_url }}" class="w-12 h-12 rounded-full mr-4"></a>
@@ -99,11 +99,18 @@
             <!-- Direct Answer Input -->
             <div class="answer-input-container mt-4 flex items-start space-x-3">
                 <img src="{{ current_user.profile_pic_url }}" class="w-10 h-10 rounded-full">
-                <div class="flex-grow flex items-center space-x-2">
-                    <textarea class="answer-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your answer..." data-post-id="{{ post.id }}"></textarea>
-                    <button class="send-answer-btn p-2 text-black bg-neon-blue rounded-full hover:opacity-90 transition-opacity" data-post-id="{{ post.id }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </button>
+                <div class="flex-grow">
+                    <div class="flex items-center space-x-2">
+                        <label class="cursor-pointer text-gray-400 hover:text-white p-2 bg-gray-700 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            <input type="file" class="hidden answer-image-input" accept="image/*">
+                        </label>
+                        <textarea class="answer-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your answer..." data-post-id="{{ post.id }}"></textarea>
+                        <button class="send-answer-btn p-2 text-black bg-neon-blue rounded-full hover:opacity-90 transition-opacity" data-post-id="{{ post.id }}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                    <div class="answer-image-preview-container mt-2"></div>
                 </div>
             </div>
         </div>
@@ -221,20 +228,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Function to handle sending answers/replies ---
-    const sendAnswer = (textarea) => {
+    const sendAnswer = (textarea, imageInput) => {
         const content = textarea.value.trim();
-        if (!content) return;
-        
-        socket.emit('new_answer', {
-            post_id: textarea.dataset.postId,
-            parent_id: textarea.dataset.parentId || null,
-            content: content
-        });
-        textarea.value = '';
-        textarea.style.height = 'auto';
+        const imageFile = imageInput ? imageInput.files[0] : null;
 
-        if (textarea.classList.contains('reply-textarea')) {
-            textarea.closest('.reply-input-container').remove();
+        if (!content && !imageFile) return;
+        
+        const sendData = (imageData = null) => {
+            socket.emit('new_answer', {
+                post_id: textarea.dataset.postId,
+                parent_id: textarea.dataset.parentId || null,
+                content: content,
+                image: imageData
+            });
+            textarea.value = '';
+            textarea.style.height = 'auto';
+            if (imageInput) {
+                imageInput.value = '';
+                const previewContainer = textarea.closest('.flex-grow').querySelector('.answer-image-preview-container');
+                if(previewContainer) previewContainer.innerHTML = '';
+            }
+            if (textarea.classList.contains('reply-textarea')) {
+                textarea.closest('.reply-input-container').remove();
+            }
+        };
+
+        if (imageFile) {
+            const reader = new FileReader();
+            reader.onload = e => sendData(e.target.result);
+            reader.readAsDataURL(imageFile);
+        } else {
+            sendData();
         }
     };
 
@@ -256,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : '';
 
         const postHtml = `
-            <div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700" id="post-${data.id}">
+            <div class="bg-[rgb(30,30,30)] p-4 sm:p-6 rounded-lg shadow-md border border-gray-700" id="post-${data.id}">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <a href="/user/${data.author_public_id}"><img src="${data.author_pic}" class="w-12 h-12 rounded-full mr-4"></a>
@@ -273,11 +297,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="answers-container space-y-4"></div>
                     <div class="answer-input-container mt-4 flex items-start space-x-3">
                         <img src="${currentUser.pic}" class="w-10 h-10 rounded-full">
-                        <div class="flex-grow flex items-center space-x-2">
-                            <textarea class="answer-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your answer..." data-post-id="${data.id}"></textarea>
-                            <button class="send-answer-btn p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700" data-post-id="${data.id}">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                            </button>
+                        <div class="flex-grow">
+                            <div class="flex items-center space-x-2">
+                                <label class="cursor-pointer text-gray-400 hover:text-white p-2 bg-gray-700 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                    <input type="file" class="hidden answer-image-input" accept="image/*">
+                                </label>
+                                <textarea class="answer-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your answer..." data-post-id="${data.id}"></textarea>
+                                <button class="send-answer-btn p-2 text-black bg-neon-blue rounded-full hover:opacity-90 transition-opacity" data-post-id="${data.id}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                                </button>
+                            </div>
+                            <div class="answer-image-preview-container mt-2"></div>
                         </div>
                     </div>
                 </div>
@@ -286,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const createAnswerHtml = (data) => {
-        const imageHtml = data.image ? `<img src="${data.image}" class="max-w-md rounded-lg mt-2">` : '';
+        const imageHtml = data.image ? `<img src="${data.image}" class="max-w-md rounded-lg mt-2 note-image-clickable cursor-pointer">` : '';
         const deleteBtnHtml = (data.user_id === currentUser.id || currentUser.isAdmin) ? `<button class="delete-answer-btn text-gray-500 hover:text-red-500 text-xs" data-answer-id="${data.id}">Delete</button>` : '';
         const answerHtml = `<div class="ml-4 mt-4 p-4 bg-gray-800 rounded-lg border-l-2 border-gray-700" id="answer-${data.id}"><div class="flex items-center justify-between"><div class="flex items-center"><a href="/user/${data.author_public_id}"><img src="${data.author_pic}" class="w-8 h-8 rounded-full mr-3"></a><div><a href="/user/${data.author_public_id}" class="hover:underline"><p class="font-semibold text-white">${data.author_name}</p></a><p class="text-xs text-gray-500">${data.timestamp}</p></div></div>${deleteBtnHtml}</div><div class="text-gray-300 mt-2 pl-11"><p class="whitespace-pre-wrap">${data.content}</p><div class="flex flex-col gap-2 mt-2">${imageHtml}</div></div><div class="pl-11 mt-2"><button class="reply-btn text-blue-400 hover:underline text-sm" data-post-id="${data.post_id}" data-parent-id="${data.id}">Reply</button></div><div class="replies-container ml-4 border-l-2 border-gray-600"></div></div>`;
         const parentContainer = data.parent_id ? document.querySelector(`#answer-${data.parent_id} .replies-container`) : document.querySelector(`#post-${data.post_id} .answers-container`);
@@ -316,8 +347,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const sendBtn = e.target.closest('.send-answer-btn, .send-reply-btn');
         if (sendBtn) {
-            const textarea = sendBtn.previousElementSibling;
-            sendAnswer(textarea);
+            const container = sendBtn.closest('.answer-input-container, .reply-input-container');
+            const textarea = container.querySelector('textarea');
+            const imageInput = container.querySelector('input[type="file"]');
+            sendAnswer(textarea, imageInput);
         }
         
         const replyBtn = e.target.closest('.reply-btn');
@@ -329,11 +362,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const replyBoxHtml = `
                 <div class="reply-input-container mt-3 flex items-start space-x-3">
                     <img src="${currentUser.pic}" class="w-8 h-8 rounded-full">
-                    <div class="flex-grow flex items-center space-x-2">
-                        <textarea class="reply-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your reply..." data-post-id="${replyBtn.dataset.postId}" data-parent-id="${replyBtn.dataset.parentId}"></textarea>
-                        <button class="send-reply-btn p-2 text-white bg-blue-600 rounded-full hover:bg-blue-700" data-post-id="${replyBtn.dataset.postId}" data-parent-id="${replyBtn.dataset.parentId}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                        </button>
+                    <div class="flex-grow">
+                        <div class="flex items-center space-x-2">
+                             <label class="cursor-pointer text-gray-400 hover:text-white p-2 bg-gray-700 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                <input type="file" class="hidden answer-image-input" accept="image/*">
+                            </label>
+                            <textarea class="reply-textarea w-full bg-gray-700 text-white p-2 rounded-lg border border-gray-600" rows="1" placeholder="Write your reply..." data-post-id="${replyBtn.dataset.postId}" data-parent-id="${replyBtn.dataset.parentId}"></textarea>
+                            <button class="send-reply-btn p-2 text-black bg-neon-blue rounded-full hover:opacity-90 transition-opacity" data-post-id="${replyBtn.dataset.postId}" data-parent-id="${replyBtn.dataset.parentId}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+                        <div class="answer-image-preview-container mt-2"></div>
                     </div>
                 </div>
             `;
@@ -346,6 +386,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const repliesContainer = viewRepliesBtn.nextElementSibling;
             repliesContainer.classList.toggle('hidden');
             viewRepliesBtn.textContent = repliesContainer.classList.contains('hidden') ? `View ${viewRepliesBtn.dataset.replyCount} Replies` : 'Hide Replies';
+        }
+    });
+
+    doubtFeed.addEventListener('change', e => {
+        if (e.target.matches('.answer-image-input')) {
+            const previewContainer = e.target.closest('.flex-grow').querySelector('.answer-image-preview-container');
+            const file = e.target.files[0];
+            previewContainer.innerHTML = '';
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    previewContainer.innerHTML = `
+                        <div class="relative inline-block">
+                            <img src="${event.target.result}" class="max-h-24 rounded-lg">
+                            <button type="button" class="remove-image-btn" onclick="this.parentElement.remove(); this.closest('.flex-grow').querySelector('.answer-image-input').value = '';">&times;</button>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
         }
     });
 

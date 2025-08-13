@@ -8,7 +8,7 @@
     .chat-container {
         display: flex;
         flex-direction: column;
-        height: calc(100vh - 10rem); /* Full height minus some padding */
+        height: calc(100vh - 6rem); /* Full height minus some padding */
         position: relative;
     }
 
@@ -58,7 +58,7 @@
 </style>
 
 <div class="relative h-full">
-    <aside id="history-sidebar" class="absolute top-0 right-0 h-full w-80 bg-gray-900/90 backdrop-blur-sm border-l border-gray-700 z-20 flex flex-col p-4 opacity-0 pointer-events-none">
+    <aside id="history-sidebar" class="absolute top-0 right-0 h-full w-80 bg-[rgb(30,30,30)] backdrop-blur-sm border-l border-gray-700 z-20 flex flex-col p-4 opacity-0 pointer-events-none">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-white">Chat History</h2>
             <button id="close-history-btn" class="p-2 text-gray-400 hover:text-white">&times;</button>
@@ -111,7 +111,7 @@
         <div class="input-area">
             <div id="image-preview-container" class="mb-2 px-2"></div>
 
-            <div class="flex items-center bg-gray-800 rounded-full p-2">
+            <div class="flex items-center bg-[rgb(30,30,30)] rounded-full p-2">
                 <button id="add-image-btn" class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-700">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                 </button>

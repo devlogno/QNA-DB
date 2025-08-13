@@ -3,35 +3,104 @@
 {% block title %}Leaderboard{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold text-gray-100 mb-6">Leaderboard</h1>
+<style>
+    .podium-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .podium-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    }
+    .gold-gradient { background-image: linear-gradient(to top right, #fde047, #facc15, #eab308); }
+    .silver-gradient { background-image: linear-gradient(to top right, #d1d5db, #9ca3af, #6b7280); }
+    .bronze-gradient { background-image: linear-gradient(to top right, #fcd34d, #fb923c, #d97706); }
+</style>
 
-<div class="bg-[rgb(30,30,30)] p-6 rounded-lg shadow-md border border-gray-700">
-    <table class="w-full text-left">
-        <thead class="bg-gray-700">
-            <tr>
-                <th class="p-4 font-semibold text-gray-300">Rank</th>
-                <th class="p-4 font-semibold text-gray-300">User</th>
-                <th class="p-4 font-semibold text-gray-300">Points</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-700">
-            {% for user in users %}
-            <tr class="hover:bg-gray-700/50">
-                <td class="p-4 font-bold text-lg">{{ loop.index }}</td>
-                <td class="p-4">
-                    <a href="{{ url_for('user.public_profile', public_id=user.public_id) }}" class="flex items-center space-x-3">
-                        <img src="{{ user.profile_pic_url }}" class="w-10 h-10 rounded-full object-cover">
-                        <span class="font-medium text-white hover:underline">{{ user.name }}</span>
-                    </a>
-                </td>
-                <td class="p-4 font-semibold text-neon-blue">{{ user.points }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="3" class="p-6 text-center text-gray-400">No users to display on the leaderboard yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-extrabold text-white">Leaderboard</h1>
+        <p class="text-lg text-gray-400 mt-2">See who's at the top of their game.</p>
+    </div>
+
+    {% if users %}
+        {% set top_users = users[:3] %}
+        {% set other_users = users[3:] %}
+
+        <!-- Top 3 Podium -->
+        <div class="w-full max-w-lg mx-auto">
+            <div class="flex flex-row justify-center items-end gap-2 md:gap-4 mb-12">
+                <!-- 2nd Place -->
+                {% if top_users|length > 1 %}
+                <div class="w-1/4 order-2">
+                    <div class="podium-card bg-gray-800 p-4 rounded-xl border-2 border-gray-500 text-center">
+                        <div class="w-10 h-10 silver-gradient rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                            <span class="text-lg font-bold text-gray-800">2</span>
+                        </div>
+                        <a href="{{ url_for('user.public_profile', public_id=top_users[1].public_id) }}">
+                            <img src="{{ top_users[1].profile_pic_url }}" class="w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto border-4 border-gray-500 object-cover">
+                            <h3 class="text-lg font-bold text-white mt-3 truncate">{{ top_users[1].name }}</h3>
+                        </a>
+                        <p class="text-xl font-semibold text-gray-300">{{ top_users[1].points }} pts</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 1st Place -->
+                {% if top_users|length > 0 %}
+                <div class="w-1/3 order-1">
+                    <div class="podium-card bg-gray-800 p-4 md:p-6 rounded-t-xl border-4 border-yellow-400 text-center">
+                        <div class="w-12 h-12 gold-gradient rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                            <svg class="w-8 h-8 text-yellow-800" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1.155l2.096 4.247 4.686.68-3.39 3.305.8 4.668L10 11.85l-4.192 2.205.8-4.668-3.39-3.305 4.686-.68L10 1.155z"/></svg>
+                        </div>
+                        <a href="{{ url_for('user.public_profile', public_id=top_users[0].public_id) }}">
+                            <img src="{{ top_users[0].profile_pic_url }}" class="w-20 h-20 md:w-28 md:h-28 rounded-full mx-auto border-4 border-yellow-400 object-cover">
+                            <h3 class="text-xl font-bold text-white mt-3 truncate">{{ top_users[0].name }}</h3>
+                        </a>
+                        <p class="text-2xl font-semibold text-yellow-300">{{ top_users[0].points }} pts</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 3rd Place -->
+                {% if top_users|length > 2 %}
+                <div class="w-1/4 order-3">
+                    <div class="podium-card bg-gray-800 p-4 rounded-xl border-2 border-orange-400 text-center">
+                        <div class="w-10 h-10 bronze-gradient rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                            <span class="text-lg font-bold text-orange-900">3</span>
+                        </div>
+                        <a href="{{ url_for('user.public_profile', public_id=top_users[2].public_id) }}">
+                            <img src="{{ top_users[2].profile_pic_url }}" class="w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto border-4 border-orange-400 object-cover">
+                            <h3 class="text-lg font-bold text-white mt-3 truncate">{{ top_users[2].name }}</h3>
+                        </a>
+                        <p class="text-xl font-semibold text-orange-300">{{ top_users[2].points }} pts</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Rest of the list -->
+        <div class="bg-dark-card p-4 rounded-lg shadow-md border border-dark-border">
+            <div class="space-y-2">
+                {% for user in other_users %}
+                <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-700/50 transition-colors">
+                    <div class="flex items-center">
+                        <span class="text-lg font-bold text-gray-400 w-8 text-center">{{ loop.index + 3 }}</span>
+                        <a href="{{ url_for('user.public_profile', public_id=user.public_id) }}" class="flex items-center space-x-3 ml-4">
+                            <img src="{{ user.profile_pic_url }}" class="w-10 h-10 rounded-full object-cover">
+                            <span class="font-medium text-white hover:underline truncate">{{ user.name }}</span>
+                        </a>
+                    </div>
+                    <div class="text-lg font-semibold text-neon-blue">{{ user.points }} pts</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-dark-card p-8 rounded-lg text-center">
+            <p class="text-xl text-gray-400">The leaderboard is empty.</p>
+            <p class="text-gray-500">Start practicing to get your name on the board!</p>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -20,7 +20,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     {% for stream in streams %}
     <!-- CORRECTED LINK -->
-    <a href="{{ url_for('routes.browse_boards', stream_id=stream.id) }}" class="block bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 hover:bg-gray-700 transition-colors duration-300">
+    <a href="{{ url_for('routes.browse_boards_by_name', level_name=level.name, stream_name=stream.name) }}" class="block bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 hover:bg-gray-700 transition-colors duration-300">
         <h3 class="text-xl font-semibold text-gray-200 mb-3">{{ stream.name }}</h3>
         <p class="text-sm text-gray-400 mt-2">Browse institutions for {{ stream.name }}.</p>
     </a>

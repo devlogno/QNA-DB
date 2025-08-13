@@ -8,7 +8,7 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     {% for level in levels %}
-    <a href="{{ url_for('routes.browse_streams', level_id=level.id) }}" class="block bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700 hover:bg-gray-700 transition-colors duration-300">
+    <a href="{{ url_for('routes.browse_streams', level_name=level.name) }}" class="block bg-gray-800 p-6 rounded-lg ...">
         <h3 class="text-xl font-semibold text-gray-200 mb-3">{{ level.name }}</h3>
         <p class="text-sm text-gray-400 mt-2">Browse questions for the {{ level.name }} level.</p>
     </a>

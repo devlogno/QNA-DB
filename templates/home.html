@@ -1,54 +1,185 @@
+
+
+
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Question Bank</title>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proshno - Question Everything</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
-            color: #e2e8f0;
+      :root {
+        --neon-blue: #00d2ff;
+        --dark-bg: #121212;
+        --dark-card: #1e1e1e;
+        --dark-border: #2d2d2d;
+        --light-bg: #f5f5f5;
+        --light-card: #ffffff;
+        --light-border: #e0e0e0;
+      }
+      .glow-on-hover {
+          transition: all 0.3s ease-in-out;
+      }
+      .group:hover .glow-on-hover {
+          box-shadow: 0 0 20px rgba(0, 210, 255, 0.6);
+      }
+      .dark .group:hover .glow-on-hover {
+          box-shadow: 0 0 30px rgba(0, 210, 255, 0.8);
+      }
+      
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
         }
-        @keyframes fade-in-down {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
-        @keyframes fade-in-up {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-down { animation: fade-in-down 0.8s ease-out forwards; }
-        .animate-fade-in-up { animation: fade-in-up 0.8s ease-out forwards; }
-        .delay-200 { animation-delay: 0.2s; }
+      }
+
+      .animate-fade-in-up {
+        animation: fadeInUp 0.6s ease-out forwards;
+        opacity: 0; /* Ensures elements are hidden before animation starts */
+      }
     </style>
-</head>
-<body class="flex flex-col h-screen items-center justify-center dark">
-    <div class="flex flex-col items-center justify-center text-center">
-        <h1 class="text-5xl font-extrabold text-white mb-6 animate-fade-in-down">
-            Question Everything. Master Anything.
-        </h1>
-        <p class="text-xl text-gray-300 mb-10 max-w-2xl animate-fade-in-up">
-            Your ultimate resource for board questions, MCQs, and CQs. Prepare smarter, not harder.
-        </p>
-        <div class="flex space-x-4 animate-fade-in-up delay-200">
-            {% if not current_user.is_authenticated %}
-            {# --- UPDATED BLOCK: Links to the correct login and register endpoints --- #}
-            <a href="{{ url_for('auth.login') }}" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
-                Login
-            </a>
-            <a href="{{ url_for('auth.register') }}" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
-                Register
-            </a>
-            {# --- END UPDATED BLOCK --- #}
-            {% else %}
-            <a href="{{ url_for('routes.dashboard') }}" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
-                Go to Dashboard
-            </a>
-            {% endif %}
-        </div>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'neon-blue': 'var(--neon-blue)',
+              'dark-bg': 'var(--dark-bg)',
+              'dark-card': 'var(--dark-card)',
+              'dark-border': 'var(--dark-border)',
+              'light-bg': 'var(--light-bg)',
+              'light-card': 'var(--light-card)',
+              'light-border': 'var(--light-border)',
+            },
+            animation: {
+              'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-light-bg dark:bg-dark-bg text-gray-800 dark:text-gray-200" style="overflow-x: hidden;">
+    
+    <div class="min-h-screen flex flex-col items-center justify-center p-4 relative">
+        <!-- Header -->
+        <header class="absolute top-0 left-0 right-0 p-4 sm:p-6">
+            <div class="container mx-auto flex justify-between items-center">
+                <!-- Logo -->
+                <a href="/" class="flex items-center space-x-2 animate-fade-in-up" style="animation-delay: 0s;">
+                    <div class="p-1 bg-neon-blue rounded-md">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="black">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z"/>
+                        </svg>
+                    </div>
+                    <span class="text-2xl font-bold text-gray-800 dark:text-white">Proshno</span>
+                </a>
+                
+                <div class="flex items-center space-x-4 animate-fade-in-up" style="animation-delay: 0.1s;">
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" aria-label="Toggle theme">
+                        <!-- Moon Icon (shown in light mode) -->
+                        <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 block dark:hidden">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <!-- Sun Icon (shown in dark mode) -->
+                        <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 hidden dark:block">
+                            <circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                    </button>
+                    <!-- Login/Register Link -->
+                    <a href="{{ url_for('auth.login') }}" class="px-4 py-2 text-base font-semibold text-gray-900 bg-neon-blue rounded-lg hover:bg-opacity-80 transition-colors">
+                        Login/Register
+                    </a>
+                </div>
+            </div>
+        </header>
+<br><br><br><br>
+        <!-- Main Content -->
+        <main class="text-center">
+            <h1 class="text-5xl md:text-7xl font-extrabold mb-6 animate-fade-in-up" style="animation-delay: 0.2s;">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-neon-blue to-blue-500">
+                    Proshno Bank
+                </span>
+            </h1>
+            <p class="text-xl md:text-2xl mb-10 text-gray-600 dark:text-gray-400 animate-fade-in-up" style="animation-delay: 0.3s;">
+                Question Everything. Master Anything.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto animate-fade-in-up" style="animation-delay: 0.4s;">
+                <!-- Category Card: SSC -->
+                <a href="#" class="block group">
+                    <div class="h-full p-8 bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border transition-all duration-300 group-hover:border-neon-blue group-hover:scale-105 glow-on-hover">
+                        <h2 class="text-3xl font-bold mb-2 text-gray-800 dark:text-white">SSC</h2>
+                        <p class="text-gray-600 dark:text-gray-400">Master your Secondary School Certificate exams.</p>
+                    </div>
+                </a>
+                <!-- Category Card: HSC -->
+                <a href="#" class="block group">
+                    <div class="h-full p-8 bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border transition-all duration-300 group-hover:border-neon-blue group-hover:scale-105 glow-on-hover">
+                        <h2 class="text-3xl font-bold mb-2 text-gray-800 dark:text-white">HSC</h2>
+                        <p class="text-gray-600 dark:text-gray-400">Excel in your Higher Secondary Certificate exams.</p>
+                    </div>
+                </a>
+                <!-- Category Card: Admission -->
+                <a href="#" class="block group">
+                    <div class="h-full p-8 bg-light-card dark:bg-dark-card rounded-xl border border-light-border dark:border-dark-border transition-all duration-300 group-hover:border-neon-blue group-hover:scale-105 glow-on-hover">
+                        <h2 class="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Admission</h2>
+                        <p class="text-gray-600 dark:text-gray-400">Prepare for university and medical admission tests.</p>
+                    </div>
+                </a>
+            </div>
+        </main>
+<br><br><br><br>
+        <!-- Footer -->
+        <footer class="absolute bottom-4 text-gray-500 text-sm animate-fade-in-up" style="animation-delay: 0.5s;">
+            © <span id="footer-year">2024</span> Proshno. All rights reserved.
+        </footer>
     </div>
-</body>
+    
+    <script>
+      // IIFE to avoid polluting global scope
+      (() => {
+        const docElement = document.documentElement;
+        const footerYear = document.getElementById('footer-year');
+
+        const applyTheme = (theme) => {
+          localStorage.setItem('theme', theme);
+          if (theme === 'dark') {
+            docElement.classList.add('dark');
+            document.getElementById('moon-icon').classList.add('hidden');
+            document.getElementById('sun-icon').classList.remove('hidden');
+          } else {
+            docElement.classList.remove('dark');
+            document.getElementById('moon-icon').classList.remove('hidden');
+            document.getElementById('sun-icon').classList.add('hidden');
+          }
+        };
+
+        const initialTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(initialTheme);
+      
+        // Event listener for the theme toggle button
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+          themeToggle.addEventListener('click', () => {
+            const isDark = docElement.classList.contains('dark');
+            applyTheme(isDark ? 'light' : 'dark');
+          });
+        }
+        
+        if (footerYear) {
+          // Footer year script
+          footerYear.textContent = new Date().getFullYear();
+        }
+      })();
+    </script>
+  </body>
 </html>
