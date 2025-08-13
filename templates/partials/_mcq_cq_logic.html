@@ -12,17 +12,17 @@
             const showUpgradePrompt = (container, redirectUrl) => {
                 container.innerHTML = `
                     <div class="absolute inset-0 bg-dark-bg bg-opacity-80 backdrop-blur-sm flex flex-col items-center justify-center text-center p-4 rounded-lg">
-                        <h3 class="text-2xl font-bold text-yellow-400 mb-2">Limit Reached</h3>
-                        <p class="text-white mb-4">You've used all your free solution views.</p>
+
                         <a href="${redirectUrl}" class="inline-block px-6 py-3 bg-neon-blue text-black font-bold rounded-lg hover:opacity-90 transition-opacity">
                             Upgrade to Premium
+                            
                         </a>
-                        <p class="text-gray-400 text-sm mt-3">Unlock unlimited solutions and all features!</p>
+                        
                     </div>
                 `;
                 container.classList.remove('hidden');
                 container.style.position = 'relative';
-                container.style.minHeight = '200px';
+                container.style.minHeight = '50px';
             };
 
             mainContent.addEventListener('click', async (event) => {

@@ -16,7 +16,7 @@
     }
 </style>
 
-<div id="question-container-{{ question.id }}" class="bg-dark-card p-6 rounded-xl border border-dark-border relative transition-colors duration-300">
+<div id="question-container-{{ question.id }}" class="bg-dark-card p-2 rounded-xl border border-dark-border relative transition-colors duration-300">
     
     {% if not quiz_mode %}
     <div class="absolute top-4 right-4 flex items-center space-x-2">
@@ -50,12 +50,12 @@
             </div>
             {% endif %}
             
-            <div class="options-container grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+            <div class="options-container grid grid-cols-1 md:grid-cols-2 gap-1 mt-4">
                 {% for opt in ['A', 'B', 'C', 'D'] %}
                     {% set opt_text = question['option_' + opt.lower()] %}
                     {% set opt_img = question['option_' + opt.lower() + '_image_url'] %}
                     {% if opt_text or opt_img %}
-                    <button class="mcq-option-btn flex items-start w-full text-left p-4 rounded-lg bg-dark-bg border border-dark-border text-gray-300 hover:border-neon-blue transition-colors duration-200" data-question-id="{{ question.id }}" data-option="{{ opt }}">
+                    <button class="mcq-option-btn flex items-start w-full text-left p-3 rounded-lg bg-dark-bg border border-dark-border text-gray-300 hover:border-neon-blue transition-colors duration-200" data-question-id="{{ question.id }}" data-option="{{ opt }}">
                         <span class="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full border border-gray-500 text-sm font-bold mr-4">{{ opt }}</span>
                         <div class="flex-1">
                             {% if opt_img %}<img src="{{ opt_img }}" alt="Option {{ opt }} Image" class="max-w-full h-auto mb-2 rounded-md">{% endif %}
@@ -67,7 +67,7 @@
             </div>
         </div>
         {% if not quiz_mode %}
-        <div class="mcq-solution-container mt-6 rounded-lg hidden"></div>
+        <div class="mcq-solution-container mt-3 rounded-lg bg-dark-bg p-3 hidden"></div>
         {% if is_premium %}
         <div class="preloaded-solution hidden">
             <h3 class="text-lg font-semibold mb-2 text-neon-blue">Solution:</h3>
@@ -83,7 +83,7 @@
 
     {% elif question.question_type == 'CQ' %}
         <div class="uddipak-block mb-4">
-            <h3 class="text-lg font-semibold text-yellow-400 mb-2">Stimulus (উদ্দীপক)</h3>
+
             <div class="text-lg font-semibold text-gray-200 flex items-start">
                 <span class="mr-3 text-gray-500">{{ loop.index + loop_offset }}.</span>
                 <div class="flex-1 {% if not quiz_mode %}pr-16{% endif %}">
