@@ -52,17 +52,17 @@ def handle_new_post(data):
     content = data.get('content')
     images_b64 = data.get('images', [])
 
-    if not content:
-        emit('post_error', {'message': 'Content is required.'})
+    if not content and not images_b64:
+        emit('post_error', {'message': 'Content or an image is required.'})
         return
 
     # Auto-generate title from the first 5 words of content
-    title_words = content.split()
+    title_words = content.split() if content else []
     title = ' '.join(title_words[:5])
     if len(title_words) > 5:
         title += '...'
     if not title:
-        title = "Untitled Doubt"
+        title = "Image Doubt"
 
     new_post = DoubtPost(
         user_id=current_user.id, 
@@ -106,10 +106,10 @@ def handle_new_answer(data):
     post_id = data.get('post_id')
     parent_id = data.get('parent_id')
     content = data.get('content')
-    image_b64 = data.get('image')
+    image_b64 = data.get('image') # UPDATED: Get image data
 
-    if not content:
-        emit('answer_error', {'message': 'Answer content cannot be empty.'})
+    if not content and not image_b64:
+        emit('answer_error', {'message': 'Answer content or an image cannot be empty.'})
         return
 
     post = db.session.get(DoubtPost, post_id)
@@ -128,8 +128,9 @@ def handle_new_answer(data):
     current_user.points += 5
     check_and_award_badge(current_user, "First Answer")
     
-    db.session.flush() # flush to get new_answer.id
+    db.session.flush()
 
+    # UPDATED: Save image if it exists
     image_url = None
     if image_b64:
         image_url = save_base64_image(image_b64)
@@ -164,7 +165,7 @@ def handle_new_answer(data):
         'author_pic': new_answer.author.profile_pic_url,
         'author_public_id': new_answer.author.public_id,
         'timestamp': new_answer.timestamp.strftime('%b %d, %Y %I:%M %p'),
-        'image': image_url,
+        'image': image_url, # UPDATED: Send image url to frontend
         'user_id': new_answer.user_id,
         'is_admin': current_user.is_admin
     }

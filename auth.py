@@ -9,62 +9,6 @@ from extensions import db, oauth
 
 auth_bp = Blueprint('auth', __name__)
 
-# --- NEW: API endpoints for React frontend ---
-@auth_bp.route('/api/start_registration', methods=['POST'])
-def api_start_registration():
-    data = request.get_json()
-    email = data.get('email')
-
-    if not email:
-        return jsonify({'success': False, 'message': 'Email is required.'}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if user:
-        return jsonify({'success': False, 'message': 'This email is already registered. Please log in.', 'action': 'redirect', 'url': '/auth/login'}), 409
-
-    session['auth_flow_email'] = email
-    
-    try:
-        otp = generate_otp(email)
-        if send_otp_email(email, otp):
-            return jsonify({'success': True, 'action': 'verify_otp'})
-        else:
-            return jsonify({'success': False, 'message': 'Failed to send OTP email.'}), 500
-    except Exception as e:
-        current_app.logger.error(f"OTP sending failed: {e}")
-        return jsonify({'success': False, 'message': 'An internal error occurred while sending OTP.'}), 500
-
-@auth_bp.route('/api/login', methods=['POST'])
-def api_login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    if not email or not password:
-        return jsonify({'success': False, 'message': 'Email and password are required.'}), 400
-    
-    user = User.query.filter_by(email=email).first()
-    if user and user.provider != 'email':
-        return jsonify({'success': False, 'message': f'This account was created using {user.provider.capitalize()}. Please use that method to log in.'}), 400
-    
-    if user and user.check_password(password):
-        login_user(user)
-        return jsonify({'success': True, 'user': {
-            'id': user.id,
-            'name': user.name,
-            'email': user.email,
-            'is_admin': user.is_admin,
-            'profile_pic_url': user.profile_pic_url
-        }})
-    else:
-        return jsonify({'success': False, 'message': 'Invalid email or password.'}), 401
-
-@auth_bp.route('/api/logout', methods=['POST'])
-@login_required
-def api_logout():
-    logout_user()
-    return jsonify({'success': True})
-
 # --- OAuth Configuration (unchanged) ---
 oauth.register(
     name='google',
@@ -80,47 +24,67 @@ oauth.register(
     userinfo_endpoint='me?fields=id,name,email,picture'
 )
 
-# --- Login and Register Routes (unchanged) ---
+# --- NEW: API Route to check email status ---
+@auth_bp.route('/check_email', methods=['POST'])
+def check_email():
+    """Checks if an email exists and returns its provider type."""
+    email = request.json.get('email')
+    if not email:
+        return jsonify({'status': 'error', 'message': 'Email is required.'}), 400
 
+    user = User.query.filter_by(email=email).first()
+
+    if user:
+        # User exists, return their provider
+        print(f"Login attempt for {email}. Status: User exists. Provider: {user.provider}.")
+        return jsonify({'status': 'exists', 'provider': user.provider})
+    else:
+        # User does not exist, they can register
+        print(f"Login attempt for {email}. Status: New user.")
+        return jsonify({'status': 'new_user'})
+
+# --- MODIFIED: Unified Login/Registration Page ---
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
+    """Handles both login and registration flows."""
     if current_user.is_authenticated:
         return redirect(url_for('routes.dashboard'))
+        
     if request.method == 'POST':
+        # This part handles the final password submission for email-based login
         email = request.form.get('email')
         password = request.form.get('password')
-        if not email or not password:
-            flash('Email and password are required.', 'danger')
-            return redirect(url_for('auth.login'))
         user = User.query.filter_by(email=email).first()
+
         if user and user.provider != 'email':
             flash(f'This account was created using {user.provider.capitalize()}. Please use that method to log in.', 'warning')
             return redirect(url_for('auth.login'))
+
         if user and user.check_password(password):
             login_user(user)
+            if not user.streams:
+                return redirect(url_for('profile.setup'))
             return redirect(url_for('routes.dashboard'))
         else:
             flash('Invalid email or password.', 'danger')
             return redirect(url_for('auth.login'))
+            
+    # For GET requests, render the new unified template
     return render_template('login.html')
 
+# The old /register route is no longer needed, but we keep it to avoid breaking old links
 @auth_bp.route('/register')
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('routes.dashboard'))
-    return render_template('register.html')
-
+    return redirect(url_for('auth.login'))
 
 # --- API Routes for Registration ---
 
-# --- UPDATED: Added @login_required decorator ---
 @auth_bp.route('/get_streams/<int:level_id>')
 @login_required
 def get_streams(level_id):
     streams = Stream.query.filter_by(level_id=level_id).order_by(Stream.name).all()
     return jsonify([{'id': s.id, 'name': s.name} for s in streams])
 
-# ... (rest of auth.py is unchanged) ...
 @auth_bp.route('/start_registration', methods=['POST'])
 def start_registration():
     data = request.get_json()
@@ -129,16 +93,13 @@ def start_registration():
     if not email:
         return jsonify({'success': False, 'message': 'Email is required.'}), 400
 
-    user = User.query.filter_by(email=email).first()
-    if user:
-        return jsonify({'success': False, 'message': 'This email is already registered. Please log in.', 'action': 'redirect', 'url': url_for('auth.login')}), 409
-
+    # We assume the frontend has already checked that this is a new user
     session['auth_flow_email'] = email
     
     try:
         otp = generate_otp(email)
         if send_otp_email(email, otp):
-            return jsonify({'success': True, 'action': 'verify_otp'})
+            return jsonify({'success': True, 'message': 'An OTP has been sent to your email.'})
         else:
             return jsonify({'success': False, 'message': 'Failed to send OTP email.'}), 500
     except Exception as e:
@@ -162,7 +123,7 @@ def verify_otp_code():
 @auth_bp.route('/complete_registration', methods=['POST'])
 def complete_registration():
     if not session.get('otp_verified'):
-        return jsonify({'success': False, 'message': 'OTP not verified. Please complete the previous step.'}), 403
+        return jsonify({'success': False, 'message': 'OTP not verified.'}), 403
 
     data = request.get_json()
     password = data.get('password')
@@ -170,7 +131,7 @@ def complete_registration():
     email = session.get('auth_flow_email')
 
     if not all([password, name, email]):
-        return jsonify({'success': False, 'message': 'Missing required information. Please start over.'}), 400
+        return jsonify({'success': False, 'message': 'Missing required information.'}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({'success': False, 'message': 'This email has already been registered.'}), 409
@@ -185,11 +146,13 @@ def complete_registration():
         session.pop('otp_verified', None)
 
         login_user(new_user)
-        return jsonify({'success': True, 'redirect_url': url_for('routes.dashboard')})
+        return jsonify({'success': True, 'redirect_url': url_for('profile.setup')})
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"User registration failed: {e}")
-        return jsonify({'success': False, 'message': 'An internal error occurred during registration.'}), 500
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
+
+# --- Social Login and Other Routes (Unchanged) ---
 
 @auth_bp.route('/google/login')
 def google_login():

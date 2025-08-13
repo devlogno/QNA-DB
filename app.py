@@ -7,8 +7,11 @@ from dotenv import load_dotenv
 from flask_migrate import Migrate
 from sqlalchemy import select
 import click
+import otp_service
 
 from extensions import db, login_manager, oauth, socketio
+from sqlalchemy.schema import CreateTable
+from sqlalchemy.dialects import mysql
 
 def create_app():
     """Create and configure an instance of the Flask application."""
@@ -57,7 +60,6 @@ def create_app():
     from leaderboard import leaderboard_bp
     from quiz import quiz_bp
     from payments import payments_bp
-    from api_routes import api_routes_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(routes_bp, url_prefix='/')
@@ -76,7 +78,6 @@ def create_app():
     app.register_blueprint(leaderboard_bp)
     app.register_blueprint(quiz_bp)
     app.register_blueprint(payments_bp)
-    app.register_blueprint(api_routes_bp)
 
     from models import User, Notification, BroadcastNotificationView, Level, Stream, Board, Subject, Chapter, Topic, generate_public_id, Badge
 
@@ -195,6 +196,23 @@ def create_app():
         
         db.session.commit()
         print("Badges seeded successfully.")
+
+    # Add this new command before the 'return app' line
+    @app.cli.command("generate-sql")
+    def generate_sql():
+        """Generates the SQL CREATE TABLE statements for all models."""
+        print("-- SQL DDL for creating all tables for phpMyAdmin (MySQL) --")
+        print("-- Copy and paste this into the SQL tab in phpMyAdmin --\n")
+        
+        dialect = mysql.dialect()
+
+        # Generate and print the CREATE statement for each table
+        for table in db.metadata.sorted_tables:
+            create_statement = CreateTable(table).compile(dialect=dialect)
+            print(f"{str(create_statement).strip()};\n")
+            
+        print("-- End of SQL DDL --")
+
 
     return app
 
